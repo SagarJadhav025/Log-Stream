@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Log Stream - Live Tail & Search</title>
+  <style>
+    :root {
+      --bg: #0b1220; --panel: #111a2c; --border: #24324d; --text: #e6edf7;
+      --muted: #8da2c0; --accent: #5ac8fa; --green: #34d399; --red: #f87171; --yellow: #fbbf24;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 20px 28px; background: var(--bg); color: var(--text);
+           font-family: "Segoe UI", system-ui, sans-serif; }
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    h1 { margin: 0; font-size: 22px; }
+    h1 span { color: var(--accent); }
+    #status { padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 600;
+              background: #2a3550; color: var(--muted); }
+    #status.connected { background: rgba(52,211,153,.18); color: var(--green); }
+    #status.disconnected { background: rgba(248,113,113,.18); color: var(--red); }
+    .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+             padding: 14px 16px; margin-bottom: 16px; }
+    .panel h2 { margin: 0 0 4px; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; color: var(--accent); }
+    .hint { margin: 0 0 10px; font-size: 12px; color: var(--muted); }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+    input[type=text] { flex: 1; min-width: 220px; padding: 9px 12px; background: #0b1220; color: var(--text);
+                       border: 1px solid var(--border); border-radius: 8px; font-family: Consolas, monospace; }
+    button { padding: 9px 16px; background: transparent; color: var(--text); border: 1px solid var(--accent);
+             border-radius: 8px; cursor: pointer; }
+    button:hover { background: rgba(90,200,250,.15); }
+    #log { height: 360px; overflow-y: auto; background: #070d18; border-radius: 8px; padding: 8px 10px;
+           font-family: Consolas, monospace; font-size: 13px; }
+    .line { white-space: pre-wrap; padding: 1px 0; }
+    .line .ts { color: var(--muted); }
+    .ERROR { color: var(--red); } .WARN { color: var(--yellow); } .INFO { color: var(--text); } .DEBUG { color: var(--muted); }
+    .info-line { color: var(--accent); font-style: italic; }
+    #results { max-height: 260px; overflow-y: auto; background: #070d18; border-radius: 8px; padding: 8px 10px;
+               font-family: Consolas, monospace; font-size: 13px; }
+    #stats { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Log <span>Stream</span> &middot; Live Tail &amp; Search</h1>
+    <span id="status">connecting...</span>
+  </header>
+
+  <section class="panel">
+    <h2>Live tail</h2>
+    <p class="hint">Filter syntax: <code>level:ERROR</code> <code>service:auth</code> <code>timeout</code> <code>"connection refused"</code>. Press Enter to apply.</p>
+    <div class="row">
+      <input id="filter" type="text" placeholder="e.g. level:ERROR service:payment">
+      <button id="apply">Apply filter</button>
+      <button id="pause">Pause</button>
+      <button id="clear">Clear screen</button>
+    </div>
+    <div id="log"></div>
+    <div id="stats">0 logs received</div>
+  </section>
+
+  <section class="panel">
+    <h2>Search</h2>
+    <p class="hint">Searches the logs stored so far (newest first).</p>
+    <div class="row">
+      <input id="query" type="text" placeholder="e.g. level:WARN service:orders limit:20">
+      <button id="search">Search</button>
+    </div>
+    <div id="results"></div>
+    <div id="searchStats" class="hint"></div>
+  </section>
+
+  <script>
+    const MAX_LINES = 500;                    // keep the page light
+    const proto = location.protocol === 'https:' ? 'wss://' : 'ws://';
+    const WS_URL = proto + (location.host || 'localhost:8080') + '/ws/logs';
+
+    const $ = (id) => document.getElementById(id);
+    let ws, retry = 0, paused = false, received = 0;
+
+    function setStatus(text, cls) { $('status').textContent = text; $('status').className = cls || ''; }
+
+    function addLine(html, cls) {
+      const box = $('log');
+      const stick = box.scrollTop + box.clientHeight >= box.scrollHeight - 20; // only auto-scroll if at bottom
+      const div = document.createElement('div');
+      div.className = 'line ' + (cls || '');
+      div.innerHTML = html;
+      box.appendChild(div);
+      while (box.childElementCount > MAX_LINES) box.removeChild(box.firstChild);
+      if (stick) box.scrollTop = box.scrollHeight;
+    }
+
+    function esc(s) { return String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])); }
+
+    function fmt(e) {
+      const t = new Date(e.timestamp).toLocaleTimeString();
+      return '<span class="ts">' + t + '</span> [' + e.level.padEnd(5) + '] ' + esc(e.service) + ' - ' + esc(e.message);
+    }
+
+    function connect() {
+      ws = new WebSocket(WS_URL);
+      ws.onopen = () => { retry = 0; setStatus('connected', 'connected'); sendFilter(); };
+      ws.onmessage = (ev) => {
+        const m = JSON.parse(ev.data);
+        if (m.type === 'log') {
+          received++;
+          $('stats').textContent = received + ' logs received';
+          addLine(fmt(m.data), m.data.level);
+        } else if (m.type === 'info') {
+          addLine('-- ' + esc(m.message), 'info-line');
+        }
+      };
+      ws.onclose = () => {
+        setStatus('disconnected', 'disconnected');
+        const wait = Math.min(1000 * 2 ** retry++, 10000);    // 1s, 2s, 4s ... max 10s
+        setTimeout(connect, wait);
+      };
+      ws.onerror = () => ws.close();
+    }
+
+    function sendFilter() {
+      if (ws && ws.readyState === WebSocket.OPEN) ws.send($('filter').value);
+    }
+
+    $('apply').onclick = sendFilter;
+    $('filter').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendFilter(); });
+    $('clear').onclick = () => { $('log').innerHTML = ''; };
+    $('pause').onclick = () => {
+      paused = !paused;
+      if (ws && ws.readyState === WebSocket.OPEN) ws.send(paused ? 'cmd:pause' : 'cmd:resume');
+      $('pause').textContent = paused ? 'Resume' : 'Pause';
+      if (!paused) sendFilter(); // cmd:resume keeps the old filter, this just makes it explicit
+    };
+
+    async function runSearch() {
+      const q = $('query').value;
+      const res = await fetch('/api/search?q=' + encodeURIComponent(q));
+      const data = await res.json();
+      $('results').innerHTML = data.results.map((e) => '<div class="line ' + e.level + '">' + fmt(e) + '</div>').join('')
+        || '<div class="line info-line">no matching logs</div>';
+      $('searchStats').textContent = data.count + ' result(s) in ' + data.tookMs + ' ms';
+    }
+    $('search').onclick = runSearch;
+    $('query').addEventListener('keydown', (e) => { if (e.key === 'Enter') runSearch(); });
+
+    connect();
+  </script>
+</body>
+</html>
