@@ -1,39 +1,30 @@
-package com.logstream.search;
+package com.axlero.logstream;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Turns the text a user types into a SearchQuery.
- *
- * Examples:
- *   timeout                          -> message contains "timeout"
- *   level:ERROR                      -> only ERROR logs
- *   level:error service:auth login   -> ERROR logs from auth that contain "login"
- *   "connection refused" limit:20    -> exact phrase, at most 20 results
- *
- * Anything that is not a level:/service:/limit: filter is a search word,
- * and every search word has to match (AND).
- */
-public final class QueryParser {
+import com.logstream.search.Searchquery;
+
+
+public final class queryparser {
 
     // either a "quoted phrase" or a run of non-space characters
     private static final Pattern TOKEN = Pattern.compile("\"([^\"]*)\"|(\\S+)");
 
-    private QueryParser() {
+    private queryparser() {
     }
 
-    public static SearchQuery parse(String input) {
+    public static Searchquery parse(String input) {
         if (input == null || input.isBlank()) {
-            return SearchQuery.matchAll();
+            return Searchquery.matchAll();
         }
 
         List<String> terms = new ArrayList<>();
         String level = null;
         String service = null;
-        int limit = SearchQuery.DEFAULT_LIMIT;
+        int limit = Searchquery.DEFAULT_LIMIT;
 
         Matcher m = TOKEN.matcher(input);
         while (m.find()) {
@@ -57,7 +48,7 @@ public final class QueryParser {
                 terms.add(lower);
             }
         }
-        return new SearchQuery(terms, level, service, limit);
+        return new Searchquery(terms, level, service, limit);
     }
 
     private static int parseLimit(String text, int fallback) {

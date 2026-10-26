@@ -1,14 +1,13 @@
 package com.logstream.search;
 
-import com.logstream.model.LogEntry;
+import com.axlero.logstream.Logentry;
 
+public final class logmatcher {
 
-public final class LogMatcher {
-
-    private LogMatcher() {
+    private logmatcher() {
     }
 
-    public static boolean matches(SearchQuery query, LogEntry entry) {
+    public static boolean matches(Searchquery query, Logentry entry) {
         if (query.level() != null && !query.level().equals(entry.level())) {
             return false;
         }

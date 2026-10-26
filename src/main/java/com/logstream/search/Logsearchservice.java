@@ -1,15 +1,15 @@
 package com.logstream.search;
 
-import com.logstream.model.LogEntry;
-
 import java.util.List;
 
+import com.axlero.logstream.Logentry;
 
-public interface LogSearchService {
+
+public interface Logsearchservice {
 
     /** store one log so it can be searched later */
-    void add(LogEntry entry);
+    void add(Logentry entry);
 
     /** newest-first matches, at most query.limit() */
-    List<LogEntry> search(SearchQuery query);
+    List<Logentry> search(Searchquery query);
 }

@@ -1,12 +1,12 @@
-package com.logstream.model;
+package com.axlero.logstream;
 
 import java.time.Instant;
 
 
-public record LogEntry(String id, Instant timestamp, String level, String service, String message) {
+public record Logentry(String id, Instant timestamp, String level, String service, String message) {
 
-    public LogEntry {
-        // keep the level in one format so filters like level:error work
+    public Logentry {
+        
         level = level == null ? "INFO" : level.trim().toUpperCase();
         service = service == null ? "unknown" : service.trim();
         message = message == null ? "" : message;

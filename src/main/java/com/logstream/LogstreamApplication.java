@@ -7,9 +7,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
 @EnableScheduling
-public class LogStreamApplication {
+public class LogstreamApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(LogStreamApplication.class, args);
+        SpringApplication.run(LogstreamApplication.class, args);
     }
 }
