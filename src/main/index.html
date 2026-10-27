@@ -73,7 +73,7 @@
   <script>
     const MAX_LINES = 500;                    // keep the page light
     const proto = location.protocol === 'https:' ? 'wss://' : 'ws://';
-    const WS_URL = proto + (location.host || 'localhost:8080') + '/ws/logs';
+   const WS_URL = 'ws://localhost:8080/ws/logs';
 
     const $ = (id) => document.getElementById(id);
     let ws, retry = 0, paused = false, received = 0;
