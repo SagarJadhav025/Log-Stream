@@ -1,4 +1,4 @@
-package com.logstream.search;
+package com.axlero.logstream.search;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -6,9 +6,8 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.logstream.search.Searchquery;
+import com.axlero.logstream.search.Searchquery;
 
-import ch.qos.logback.classic.pattern.RelativeTimeConverter;
 
 public final class QueryParser {
 
@@ -46,7 +45,7 @@ public final class QueryParser {
             } else if (lower.startsWith("service:") && token.length() > 8) {
                 service = token.substring(8);
             } else if (lower.startsWith("since:")) {
-                since = RelativeTimeConverter.parse(token.substring(6)); // bad value -> null -> ignored
+                since = parseSince(token.substring(6)); // bad value -> null -> ignored
             } else if (lower.startsWith("limit:")) {
                 limit = parseLimit(token.substring(6), limit);
             } else {
@@ -56,6 +55,26 @@ public final class QueryParser {
         return new Searchquery(terms, level, service, since, limit);
     }
 
+    private static Duration parseSince(String text) {
+        if (text == null || text.length() < 2) {
+            return null;
+        }
+        try {
+            long n = Long.parseLong(text.substring(0, text.length() - 1));
+            if (n <= 0) {
+                return null;
+            }
+            switch (Character.toLowerCase(text.charAt(text.length() - 1))) {
+                case 's': return Duration.ofSeconds(n);
+                case 'm': return Duration.ofMinutes(n);
+                case 'h': return Duration.ofHours(n);
+                case 'd': return Duration.ofDays(n);
+                default:  return null;
+            }
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
     private static int parseLimit(String text, int fallback) {
         try {
             return Integer.parseInt(text);
