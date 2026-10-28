@@ -20,7 +20,7 @@
     #status.connected { background: rgba(52,211,153,.18); color: var(--green); }
     #status.disconnected { background: rgba(248,113,113,.18); color: var(--red); }
     .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
-             padding: 14px 16px; margin-bottom: 16px; }
+   padding: 14px 16px; margin-bottom: 16px; }
     .panel h2 { margin: 0 0 4px; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; color: var(--accent); }
     .hint { margin: 0 0 10px; font-size: 12px; color: var(--muted); }
     .row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
@@ -48,7 +48,7 @@
 
   <section class="panel">
     <h2>Live tail</h2>
-    <p class="hint">Filter syntax: <code>level:ERROR</code> <code>service:auth</code> <code>timeout</code> <code>"connection refused"</code>. Press Enter to apply.</p>
+    <p class="hint">Filter syntax: <code>level:ERROR</code> <code>service:auth</code> <code>since:15m</code> <code>timeout</code> <code>"connection refused"</code>. Press Enter to apply.</p>
     <div class="row">
       <input id="filter" type="text" placeholder="e.g. level:ERROR service:payment">
       <button id="apply">Apply filter</button>
@@ -72,8 +72,9 @@
 
   <script>
     const MAX_LINES = 500;                    // keep the page light
-    const proto = location.protocol === 'https:' ? 'wss://' : 'ws://';
-   const WS_URL = 'ws://localhost:8080/ws/logs';
+    const WS_URL = 'ws://localhost:8080/ws/logs';
+    // same server -> relative address; opened from somewhere else -> full address
+    const API_BASE = location.port === '8080' ? '' : 'http://localhost:8080';
 
     const $ = (id) => document.getElementById(id);
     let ws, retry = 0, paused = false, received = 0;
@@ -135,11 +136,15 @@
 
     async function runSearch() {
       const q = $('query').value;
-      const res = await fetch('/api/search?q=' + encodeURIComponent(q));
-      const data = await res.json();
-      $('results').innerHTML = data.results.map((e) => '<div class="line ' + e.level + '">' + fmt(e) + '</div>').join('')
-        || '<div class="line info-line">no matching logs</div>';
-      $('searchStats').textContent = data.count + ' result(s) in ' + data.tookMs + ' ms';
+      try {
+        const res = await fetch(API_BASE + '/api/search?q=' + encodeURIComponent(q));
+        const data = await res.json();
+        $('results').innerHTML = data.results.map((e) => '<div class="line ' + e.level + '">' + fmt(e) + '</div>').join('')
+          || '<div class="line info-line">no matching logs</div>';
+        $('searchStats').textContent = data.count + ' result(s) in ' + data.tookMs + ' ms';
+      } catch (err) {
+        $('results').innerHTML = '<div class="line ERROR">Search failed: is the app running on port 8080?</div>';
+      }
     }
     $('search').onclick = runSearch;
     $('query').addEventListener('keydown', (e) => { if (e.key === 'Enter') runSearch(); });

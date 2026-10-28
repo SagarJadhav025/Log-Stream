@@ -1,5 +1,7 @@
 package com.logstream.search;
 
+import java.time.Instant;
+
 import com.axlero.logstream.Logentry;
 
 public final class logmatcher {
@@ -7,7 +9,7 @@ public final class logmatcher {
     private logmatcher() {
     }
 
-    public static boolean matches(Searchquery query, Logentry entry) {
+    public static boolean matches(Searchquery query, Logentry entry, Instant now) {
         if (query.level() != null && !query.level().equals(entry.level())) {
             return false;
         }

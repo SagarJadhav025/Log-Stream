@@ -6,10 +6,6 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.logstream.search.Searchquery;
-
-import ch.qos.logback.classic.pattern.RelativeTimeConverter;
-
 public final class QueryParser {
 
     // either a "quoted phrase" or a run of non-space characters
@@ -46,7 +42,7 @@ public final class QueryParser {
             } else if (lower.startsWith("service:") && token.length() > 8) {
                 service = token.substring(8);
             } else if (lower.startsWith("since:")) {
-                since = RelativeTimeConverter.parse(token.substring(6)); // bad value -> null -> ignored
+                since = parseSince(token.substring(6)); // bad value -> null -> ignored
             } else if (lower.startsWith("limit:")) {
                 limit = parseLimit(token.substring(6), limit);
             } else {
@@ -61,6 +57,24 @@ public final class QueryParser {
             return Integer.parseInt(text);
         } catch (NumberFormatException e) {
             return fallback; // "limit:abc" is ignored instead of crashing
+        }
+    }
+
+    private static Duration parseSince(String text) {
+        try {
+            if (text.matches("[0-9]+[smhd]")) {
+                long amount = Long.parseLong(text.substring(0, text.length() - 1));
+                return switch (text.charAt(text.length() - 1)) {
+                    case 's' -> Duration.ofSeconds(amount);
+                    case 'm' -> Duration.ofMinutes(amount);
+                    case 'h' -> Duration.ofHours(amount);
+                    case 'd' -> Duration.ofDays(amount);
+                    default -> null;
+                };
+            }
+            return Duration.parse(text);
+        } catch (IllegalArgumentException e) {
+            return null;
         }
     }
 }
