@@ -14,6 +14,7 @@ class LogMatcherEdgeCaseTest {
 
     private static Logentry at(Instant time, String message) {
         return new Logentry("id", time, "INFO", "auth", message);
+        
     }
 
    
@@ -23,7 +24,7 @@ class LogMatcherEdgeCaseTest {
     }
 
     private void assertTrue(boolean matches) {
-        // TODO Auto-generated method stub
+
         throw new UnsupportedOperationException("Unimplemented method 'assertTrue'");
     }
 
@@ -65,7 +66,7 @@ class LogMatcherEdgeCaseTest {
     }
 
     private void assertEquals(Searchquery matchAll, Searchquery searchquery) {
-        // TODO Auto-generated method stub
+
         throw new UnsupportedOperationException("Unimplemented method 'assertEquals'");
     }
 }
