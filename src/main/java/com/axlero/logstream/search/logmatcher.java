@@ -1,4 +1,4 @@
-package com.logstream.search;
+package com.axlero.logstream.search;
 
 import com.axlero.logstream.Logentry;
 
