@@ -1,4 +1,4 @@
-package com.logstream.search;
+package com.axlero.logstream.search;
 
 import java.time.Duration;
 import java.util.List;
