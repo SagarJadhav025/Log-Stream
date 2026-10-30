@@ -33,4 +33,5 @@ build/
 .vscode/
 
 lucene-index/
+.maven-repository/
 

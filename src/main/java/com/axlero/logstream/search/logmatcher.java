@@ -1,5 +1,7 @@
 package com.axlero.logstream.search;
 
+import java.util.Locale;
+
 import com.axlero.logstream.Logentry;
 
 public final class logmatcher {
@@ -15,7 +17,7 @@ public final class logmatcher {
             return false;
         }
         if (!query.terms().isEmpty()) {
-            String message = entry.message().toLowerCase();
+            String message = entry.message().toLowerCase(Locale.ROOT);
             for (String term : query.terms()) {
                 if (!message.contains(term)) {
                     return false;
