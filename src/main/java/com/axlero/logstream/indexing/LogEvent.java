@@ -8,7 +8,8 @@ public record LogEvent(
         Instant timestamp,
         String level,
         String service,
-        String message
+        String message,
+        String id
 ) {
     public LogEvent {
         Objects.requireNonNull(timestamp, "timestamp must not be null");
@@ -21,5 +22,15 @@ public record LogEvent(
                     "level, service, and message must not be blank"
             );
         }
+    }
+
+    /** Retains the original constructor for existing callers. */
+    public LogEvent(
+            Instant timestamp,
+            String level,
+            String service,
+            String message
+    ) {
+        this(timestamp, level, service, message, null);
     }
 }

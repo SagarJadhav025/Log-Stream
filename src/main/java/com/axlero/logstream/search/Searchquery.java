@@ -2,6 +2,7 @@ package com.axlero.logstream.search;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Locale;
 
 
 public record Searchquery(List<String> terms, String level, String service, Duration since, int limit) {
@@ -11,8 +12,8 @@ public record Searchquery(List<String> terms, String level, String service, Dura
 
     public Searchquery {
         terms = terms == null ? List.of() : List.copyOf(terms);
-        level = (level == null || level.isBlank()) ? null : level.trim().toUpperCase();
-        service = (service == null || service.isBlank()) ? null : service.trim().toLowerCase();
+        level = (level == null || level.isBlank()) ? null : level.trim().toUpperCase(Locale.ROOT);
+        service = (service == null || service.isBlank()) ? null : service.trim().toLowerCase(Locale.ROOT);
         if (limit <= 0) {
             limit = DEFAULT_LIMIT;
         }
