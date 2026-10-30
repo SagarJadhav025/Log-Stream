@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package logstream;
+
+option java_multiple_files = true;
+option java_package = "com.axlero.logstream.grpc";
+
+message LogMessage {
+  string timestamp = 1;
+  string service_name = 2;
+  string level = 3;
+  string message = 4;
+  int32 response_time = 5;
+}
+
+message LogResponse {
+  bool success = 1;
+  string status_message = 2;
+}
+
+service LogIngestionService {
+  rpc StreamLogs(stream LogMessage) returns (LogResponse);
+}
