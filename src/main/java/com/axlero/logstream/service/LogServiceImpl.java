@@ -8,7 +8,6 @@ import net.devh.boot.grpc.server.service.GrpcService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// @GrpcService tells Spring Boot to automatically start hosting this on the gRPC port
 @GrpcService
 public class LogServiceImpl extends LogIngestionServiceGrpc.LogIngestionServiceImplBase {
 
@@ -21,21 +20,31 @@ public class LogServiceImpl extends LogIngestionServiceGrpc.LogIngestionServiceI
 
             @Override
             public void onNext(LogMessage logMessage) {
-                // For now, we just count the logs to prepare for your 10,000/sec throughput audit
                 logCount++;
+
+                // 1. Extract the actual log data (adjust getter names to match your .proto file)
+                // String serviceName = logMessage.getServiceName();
+                // String logLevel = logMessage.getLevel();
+                // String messageContent = logMessage.getMessage();
+                // long timestamp = logMessage.getTimestamp();
+
+                // 2. Pass the extracted data to your Lucene Indexer for real-time search
+                // indexService.indexLogDocument(serviceName, logLevel, messageContent, timestamp);
+
+                // 3. High-throughput batch logging
                 if (logCount % 5000 == 0) {
-                    logger.info("Received {} logs so far...", logCount);
+                    logger.info("High-throughput ingestion: Received {} logs so far...", logCount);
                 }
             }
 
             @Override
             public void onError(Throwable t) {
-                logger.error("Error receiving log stream", t);
+                logger.error("Error receiving gRPC log stream: ", t);
             }
 
             @Override
             public void onCompleted() {
-                logger.info("Stream finished. Total logs received: {}", logCount);
+                logger.info("Stream finished. Total logs successfully ingested: {}", logCount);
 
                 LogResponse response = LogResponse.newBuilder()
                         .setSuccess(true)
