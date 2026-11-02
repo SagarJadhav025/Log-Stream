@@ -20,9 +20,17 @@ public class LogIndexer {
     private FSDirectory directory;
     private IndexWriter writer;
 
+    public LogIndexer() {
+    }
+
+    public LogIndexer(String indexDir) {
+        this.indexDir = indexDir;
+    }
+
     @PostConstruct
-    void init() throws IOException {
-        directory = FSDirectory.open(Path.of(indexDir));
+    public void init() throws IOException {
+        String dir = (indexDir != null && !indexDir.isBlank()) ? indexDir : "./lucene-index";
+        directory = FSDirectory.open(Path.of(dir));
         IndexWriterConfig cfg = new IndexWriterConfig(new StandardAnalyzer());
         cfg.setRAMBufferSizeMB(256);
         writer = new IndexWriter(directory, cfg);
@@ -42,9 +50,23 @@ public class LogIndexer {
         writer.addDocument(d);
     }
 
-    public void commit() throws IOException { writer.commit(); }
-    public IndexWriter writer() { return writer; }
+    public void commit() throws IOException {
+        if (writer != null) {
+            writer.commit();
+        }
+    }
+
+    public IndexWriter writer() {
+        return writer;
+    }
 
     @PreDestroy
-    void close() throws IOException { writer.close(); directory.close(); }
+    public void close() throws IOException {
+        if (writer != null) {
+            writer.close();
+        }
+        if (directory != null) {
+            directory.close();
+        }
+    }
 }
