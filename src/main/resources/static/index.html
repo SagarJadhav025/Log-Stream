@@ -1,0 +1,1470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <title>LogStream · React Observability Dashboard</title>
+
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Apache ECharts -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+
+  <!-- React 18, ReactDOM & Babel for JSX -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    /* ===================================================================
+       DARK NEUMORPHISM (SOFT UI) DESIGN SYSTEM
+       =================================================================== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      color-scheme: dark;
+
+      /* Unified Base Surface */
+      --neu-bg:       #181e2b;
+      --neu-light:    #212b3d;
+      --neu-dark:     #10141d;
+      --neu-darker:   #0b0e14;
+
+      /* Neumorphic Shadow Elevations */
+      --neu-extruded:
+        -6px -6px 14px var(--neu-light),
+         6px  6px 14px var(--neu-dark);
+
+      --neu-extruded-lg:
+        -10px -10px 22px var(--neu-light),
+          10px  10px 22px var(--neu-dark);
+
+      --neu-extruded-sm:
+        -3px -3px 8px var(--neu-light),
+         3px  3px 8px var(--neu-dark);
+
+      --neu-sunken:
+        inset -4px -4px 9px var(--neu-light),
+        inset  4px  4px 9px var(--neu-dark);
+
+      --neu-sunken-deep:
+        inset -7px -7px 16px var(--neu-light),
+        inset  7px  7px 16px var(--neu-dark);
+
+      /* Accent & Highlights */
+      --accent:       #4f8eff;
+      --accent-glow:  rgba(79, 142, 255, 0.35);
+      --accent-soft:  rgba(79, 142, 255, 0.15);
+      --accent-cyan:  #00f0ff;
+      --accent-purple:#8a63ff;
+
+      /* Active State (Inner glow + sunken) */
+      --neu-active:
+        inset -3px -3px 8px var(--neu-light),
+        inset  3px  3px 8px var(--neu-dark),
+        0 0 16px var(--accent-glow);
+
+      /* Typography & Feedback */
+      --text-main:    #e2e8f5;
+      --text-muted:   #7d8ea8;
+      --text-faint:   #404d63;
+
+      --c-error:      #ff5a68;
+      --c-warn:       #ffbe3b;
+      --c-info:       #4f8eff;
+      --c-debug:      #34d399;
+      --c-trace:      #94a3b8;
+      --c-success:    #10b981;
+
+      /* Geometry */
+      --rad-sm:       8px;
+      --rad-md:       14px;
+      --rad-lg:       20px;
+      --rad-pill:     9999px;
+
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background-color: var(--neu-bg);
+      color: var(--text-main);
+      height: 100vh;
+      overflow: hidden;
+      font-size: 13.5px;
+      user-select: none;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--neu-bg); }
+    ::-webkit-scrollbar-thumb {
+      background: var(--neu-light);
+      border-radius: var(--rad-pill);
+      box-shadow: var(--neu-extruded-sm);
+    }
+
+    #root {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Neumorphic UI primitives */
+    .neu-raised {
+      background: var(--neu-bg);
+      box-shadow: var(--neu-extruded);
+      border-radius: var(--rad-md);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .neu-raised-lg {
+      background: var(--neu-bg);
+      box-shadow: var(--neu-extruded-lg);
+      border-radius: var(--rad-lg);
+    }
+
+    .neu-sunken {
+      background: var(--neu-bg);
+      box-shadow: var(--neu-sunken);
+      border-radius: var(--rad-md);
+    }
+
+    .neu-sunken-deep {
+      background: var(--neu-bg);
+      box-shadow: var(--neu-sunken-deep);
+      border-radius: var(--rad-lg);
+    }
+
+    .neu-btn {
+      background: var(--neu-bg);
+      color: var(--text-main);
+      box-shadow: var(--neu-extruded);
+      border: none;
+      outline: none;
+      cursor: pointer;
+      font-weight: 600;
+      padding: 9px 18px;
+      border-radius: var(--rad-md);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      transition: all 0.18s ease;
+    }
+    .neu-btn:hover {
+      color: #fff;
+      transform: translateY(-1px);
+      box-shadow:
+        -8px -8px 18px var(--neu-light),
+         8px  8px 18px var(--neu-dark);
+    }
+    .neu-btn:active, .neu-btn.pressed {
+      transform: translateY(0);
+      box-shadow: var(--neu-sunken);
+      color: var(--accent);
+    }
+
+    .neu-btn-primary {
+      color: var(--accent);
+      box-shadow:
+        var(--neu-extruded),
+        0 0 14px var(--accent-soft);
+    }
+    .neu-btn-primary:hover {
+      box-shadow:
+        -8px -8px 18px var(--neu-light),
+         8px  8px 18px var(--neu-dark),
+        0 0 20px var(--accent-glow);
+    }
+
+    .neu-btn-danger {
+      color: var(--c-error);
+    }
+    .neu-btn-danger:hover {
+      box-shadow:
+        var(--neu-extruded),
+        0 0 16px rgba(255, 90, 104, 0.3);
+    }
+
+    .neu-btn-sm {
+      padding: 6px 12px;
+      font-size: 12px;
+      border-radius: var(--rad-sm);
+    }
+
+    .neu-input {
+      background: var(--neu-bg);
+      box-shadow: var(--neu-sunken);
+      border: none;
+      outline: none;
+      color: var(--text-main);
+      padding: 9px 14px;
+      border-radius: var(--rad-md);
+      font-size: 13px;
+      font-family: inherit;
+      transition: box-shadow 0.2s ease;
+    }
+    .neu-input:focus {
+      box-shadow:
+        inset -5px -5px 10px var(--neu-light),
+        inset  5px  5px 10px var(--neu-dark),
+        0 0 10px var(--accent-soft);
+    }
+    .neu-input::placeholder {
+      color: var(--text-faint);
+    }
+
+    select.neu-input {
+      appearance: none;
+      cursor: pointer;
+      padding-right: 32px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237d8ea8' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+    }
+
+    /* Soft Switch Toggle */
+    .neu-toggle {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      border-radius: var(--rad-pill);
+      background: var(--neu-bg);
+      box-shadow: var(--neu-sunken);
+      cursor: pointer;
+      display: inline-block;
+      transition: all 0.2s ease;
+    }
+    .neu-toggle-thumb {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--neu-bg);
+      box-shadow: var(--neu-extruded-sm);
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s;
+    }
+    .neu-toggle.checked {
+      box-shadow:
+        inset -3px -3px 7px var(--neu-light),
+        inset  3px  3px 7px var(--neu-dark),
+        0 0 12px var(--accent-soft);
+    }
+    .neu-toggle.checked .neu-toggle-thumb {
+      transform: translateX(20px);
+      background: var(--accent);
+      box-shadow: 0 0 10px var(--accent-glow);
+    }
+
+    /* Badges */
+    .neu-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: var(--rad-pill);
+      font-size: 11px;
+      font-weight: 700;
+      background: var(--neu-bg);
+      box-shadow: var(--neu-sunken);
+      letter-spacing: 0.04em;
+    }
+    .neu-badge.ERROR    { color: var(--c-error); box-shadow: inset -2px -2px 5px var(--neu-light), inset 2px 2px 5px var(--neu-dark), 0 0 8px rgba(255, 90, 104, 0.2); }
+    .neu-badge.WARN     { color: var(--c-warn);  box-shadow: inset -2px -2px 5px var(--neu-light), inset 2px 2px 5px var(--neu-dark), 0 0 8px rgba(255, 190, 59, 0.2); }
+    .neu-badge.INFO     { color: var(--c-info);  box-shadow: inset -2px -2px 5px var(--neu-light), inset 2px 2px 5px var(--neu-dark), 0 0 8px rgba(79, 142, 255, 0.2); }
+    .neu-badge.DEBUG    { color: var(--c-debug); box-shadow: inset -2px -2px 5px var(--neu-light), inset 2px 2px 5px var(--neu-dark), 0 0 8px rgba(52, 211, 153, 0.2); }
+    .neu-badge.CRITICAL { color: var(--c-error); }
+    .neu-badge.HIGH     { color: #ff8544; }
+    .neu-badge.MEDIUM   { color: var(--c-warn); }
+    .neu-badge.LOW      { color: var(--c-info); }
+
+    /* Code & Monospace font */
+    .mono {
+      font-family: 'JetBrains Mono', Consolas, monospace;
+    }
+
+    /* Keyframes */
+    @keyframes pulse-ring {
+      0%, 100% { transform: scale(1); opacity: 0.8; }
+      50% { transform: scale(1.3); opacity: 0.2; }
+    }
+    @keyframes fadeInSlide {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- React Root Container -->
+  <div id="root"></div>
+
+  <!-- React Neumorphic Application Logic -->
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useMemo, useCallback } = React;
+
+    const API_BASE = window.location.port === '3000' ? 'http://localhost:8080' : '';
+    const WS_URL   = (location.protocol === 'https:' ? 'wss://' : 'ws://') + (location.port === '3000' ? 'localhost:8080' : location.host) + '/ws/logs';
+    const MAX_TAIL_LINES = 600;
+
+    // Helper: format timestamp
+    const formatTime = (ts) => {
+      if (!ts) return '--:--:--';
+      const d = new Date(ts);
+      return isNaN(d) ? ts : d.toLocaleTimeString('en-US', { hour12: false });
+    };
+
+    const formatDateTime = (ts) => {
+      if (!ts) return '--';
+      const d = new Date(ts);
+      return isNaN(d) ? ts : d.toLocaleString('en-US', {
+        month: 'short', day: 'numeric',
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+      });
+    };
+
+    // ===================================================================
+    // HEADER COMPONENT (Neumorphic Top Surface)
+    // ===================================================================
+    function Header({ lps, totalLogs, totalErrors, wsConnected, wsConnecting }) {
+      return (
+        <header style={{
+          height: 64,
+          padding: '0 24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: 'var(--neu-bg)',
+          boxShadow: '0 4px 16px var(--neu-dark)',
+          zIndex: 10
+        }}>
+          {/* Logo */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div className="neu-raised" style={{
+              width: 38,
+              height: 38,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 18,
+              borderRadius: 12,
+              background: 'linear-gradient(145deg, var(--neu-light), var(--neu-bg))'
+            }}>
+              📡
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 16, letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                LogStream
+                <span className="neu-badge" style={{ fontSize: 9, padding: '2px 7px', color: 'var(--accent)' }}>REACT</span>
+              </div>
+              <div style={{ fontSize: 10.5, color: 'var(--text-muted)', fontWeight: 500 }}>
+                High-Performance Observability
+              </div>
+            </div>
+          </div>
+
+          {/* Center Real-Time Counters */}
+          <div style={{ display: 'flex', gap: 14 }}>
+            <div className="neu-sunken" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 16px', borderRadius: 'var(--rad-pill)' }}>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>RATE</span>
+              <strong style={{ fontSize: 14, color: 'var(--accent)', minWidth: 32, textAlign: 'right' }}>{lps}</strong>
+              <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>logs/s</span>
+            </div>
+
+            <div className="neu-sunken" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 16px', borderRadius: 'var(--rad-pill)' }}>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>TOTAL</span>
+              <strong style={{ fontSize: 14, color: 'var(--text-main)' }}>{totalLogs.toLocaleString()}</strong>
+            </div>
+
+            <div className="neu-sunken" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 16px', borderRadius: 'var(--rad-pill)' }}>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>ERRORS</span>
+              <strong style={{ fontSize: 14, color: 'var(--c-error)' }}>{totalErrors.toLocaleString()}</strong>
+            </div>
+          </div>
+
+          {/* WebSocket Status Pill */}
+          <div className="neu-sunken" style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 9,
+            padding: '7px 16px',
+            borderRadius: 'var(--rad-pill)'
+          }}>
+            <div style={{ position: 'relative', width: 10, height: 10 }}>
+              <div style={{
+                width: 10,
+                height: 10,
+                borderRadius: '50%',
+                backgroundColor: wsConnected ? 'var(--c-success)' : wsConnecting ? 'var(--c-warn)' : 'var(--c-error)',
+                boxShadow: wsConnected ? '0 0 8px var(--c-success)' : 'none'
+              }} />
+              {wsConnected && (
+                <div style={{
+                  position: 'absolute',
+                  inset: -2,
+                  borderRadius: '50%',
+                  border: '1.5px solid var(--c-success)',
+                  animation: 'pulse-ring 2s infinite'
+                }} />
+              )}
+            </div>
+            <span style={{ fontSize: 12, fontWeight: 600, color: wsConnected ? 'var(--c-success)' : wsConnecting ? 'var(--c-warn)' : 'var(--c-error)' }}>
+              {wsConnected ? 'LIVE STREAM' : wsConnecting ? 'CONNECTING...' : 'OFFLINE'}
+            </span>
+          </div>
+        </header>
+      );
+    }
+
+    // ===================================================================
+    // SIDEBAR NAVIGATION
+    // ===================================================================
+    function Sidebar({ activeTab, setActiveTab, unreadAlerts }) {
+      const navItems = [
+        { id: 'live-tail',  label: 'Live Tail',     icon: '⚡', category: 'MONITORING' },
+        { id: 'search',     label: 'Search Logs',   icon: '🔍', category: 'MONITORING' },
+        { id: 'histogram',  label: 'Metrics & Chart',icon: '📊', category: 'MONITORING' },
+        { id: 'alerts',     label: 'Alert Rules',   icon: '🚨', category: 'AUTOMATION', badge: unreadAlerts > 0 ? unreadAlerts : null },
+        { id: 'history',    label: 'Audit History', icon: '📬', category: 'AUTOMATION' },
+      ];
+
+      return (
+        <aside style={{
+          width: 220,
+          background: 'var(--neu-bg)',
+          padding: '24px 16px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 6,
+          boxShadow: '4px 0 16px var(--neu-dark)',
+          zIndex: 5
+        }}>
+          {navItems.map((item, idx) => {
+            const showCategory = idx === 0 || navItems[idx - 1].category !== item.category;
+            const isActive = activeTab === item.id;
+            return (
+              <React.Fragment key={item.id}>
+                {showCategory && (
+                  <div style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    letterSpacing: '0.08em',
+                    color: 'var(--text-faint)',
+                    padding: '12px 10px 4px'
+                  }}>
+                    {item.category}
+                  </div>
+                )}
+                <button
+                  onClick={() => setActiveTab(item.id)}
+                  className={`neu-btn ${isActive ? 'pressed' : ''}`}
+                  style={{
+                    width: '100%',
+                    justifyContent: 'flex-start',
+                    padding: '11px 14px',
+                    borderRadius: 'var(--rad-md)',
+                    color: isActive ? 'var(--accent)' : 'var(--text-muted)',
+                    boxShadow: isActive ? 'var(--neu-active)' : 'var(--neu-extruded)',
+                    fontWeight: isActive ? 700 : 500
+                  }}
+                >
+                  <span style={{ fontSize: 16 }}>{item.icon}</span>
+                  <span style={{ flex: 1, textAlign: 'left' }}>{item.label}</span>
+                  {item.badge && (
+                    <span className="neu-badge" style={{ background: 'var(--c-error)', color: '#fff', fontSize: 10 }}>
+                      {item.badge}
+                    </span>
+                  )}
+                </button>
+              </React.Fragment>
+            );
+          })}
+        </aside>
+      );
+    }
+
+    // ===================================================================
+    // TAB 1: LIVE TAIL VIEW (High-Performance WebSocket Stream)
+    // ===================================================================
+    function LiveTailView({ logs, paused, setPaused, clearLogs, filterText, setFilterText, levelFilter, setLevelFilter }) {
+      const scrollRef = useRef(null);
+      const isAutoScroll = useRef(true);
+
+      const handleScroll = () => {
+        if (!scrollRef.current) return;
+        const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+        isAutoScroll.current = (scrollHeight - scrollTop - clientHeight) < 40;
+      };
+
+      useEffect(() => {
+        if (isAutoScroll.current && scrollRef.current && !paused) {
+          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+      }, [logs, paused]);
+
+      const filteredLogs = useMemo(() => {
+        return logs.filter(log => {
+          if (levelFilter && log.level !== levelFilter) return false;
+          if (filterText) {
+            const lower = filterText.toLowerCase();
+            const matchMsg = log.message && log.message.toLowerCase().includes(lower);
+            const matchSvc = log.service && log.service.toLowerCase().includes(lower);
+            if (!matchMsg && !matchSvc) return false;
+          }
+          return true;
+        });
+      }, [logs, levelFilter, filterText]);
+
+      return (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', padding: '16px 20px', gap: 14 }}>
+          {/* Controls Bar */}
+          <div className="neu-raised" style={{ padding: '12px 18px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              ⚡ Live Tail
+            </span>
+
+            {/* Inset Filter Input */}
+            <input
+              type="text"
+              className="neu-input"
+              style={{ flex: 1, minWidth: 260 }}
+              placeholder='Filter logs by text or service (e.g. "auth" or "timeout")...'
+              value={filterText}
+              onChange={(e) => setFilterText(e.target.value)}
+            />
+
+            {/* Level Select */}
+            <select
+              className="neu-input"
+              value={levelFilter}
+              onChange={(e) => setLevelFilter(e.target.value)}
+              style={{ width: 130 }}
+            >
+              <option value="">All Levels</option>
+              <option value="ERROR">ERROR</option>
+              <option value="WARN">WARN</option>
+              <option value="INFO">INFO</option>
+              <option value="DEBUG">DEBUG</option>
+            </select>
+
+            {/* Buttons */}
+            <button
+              onClick={() => setPaused(!paused)}
+              className={`neu-btn neu-btn-sm ${paused ? 'neu-btn-primary pressed' : ''}`}
+            >
+              {paused ? '▶ Resume' : '⏸ Pause'}
+            </button>
+
+            <button onClick={clearLogs} className="neu-btn neu-btn-sm">
+              🗑 Clear
+            </button>
+
+            <div style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)' }}>
+              Showing <strong>{filteredLogs.length}</strong> / {logs.length} lines
+            </div>
+          </div>
+
+          {/* Neumorphic Sunken Log Terminal */}
+          <div
+            ref={scrollRef}
+            onScroll={handleScroll}
+            className="neu-sunken-deep mono"
+            style={{
+              flex: 1,
+              overflowY: 'auto',
+              padding: '14px 18px',
+              fontSize: 12.5,
+              lineHeight: 1.65,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 4
+            }}
+          >
+            {filteredLogs.length === 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, color: 'var(--text-faint)', gap: 8 }}>
+                <span style={{ fontSize: 32 }}>📡</span>
+                <span>No logs matching current filter. Waiting for live events...</span>
+              </div>
+            ) : (
+              filteredLogs.map((item, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'baseline',
+                    gap: 12,
+                    padding: '2px 6px',
+                    borderRadius: 6,
+                    animation: 'fadeInSlide 0.15s ease-out'
+                  }}
+                >
+                  <span style={{ color: 'var(--text-faint)', fontSize: 11, flexShrink: 0 }}>
+                    {formatTime(item.timestamp)}
+                  </span>
+                  <span className={`neu-badge ${item.level}`} style={{ fontSize: 9.5, padding: '1px 7px', minWidth: 48, justifyContent: 'center' }}>
+                    {item.level}
+                  </span>
+                  <span style={{ color: 'var(--accent)', fontWeight: 600, flexShrink: 0, minWidth: 90 }}>
+                    [{item.service || 'system'}]
+                  </span>
+                  <span style={{
+                    color: item.level === 'ERROR' ? 'var(--c-error)' : item.level === 'WARN' ? 'var(--c-warn)' : 'var(--text-main)',
+                    wordBreak: 'break-all'
+                  }}>
+                    {item.message}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // ===================================================================
+    // TAB 2: SEARCH LOGS (Lucene High-Speed Queries)
+    // ===================================================================
+    function SearchView({ onNotify }) {
+      const [query, setQuery] = useState('');
+      const [level, setLevel] = useState('');
+      const [service, setService] = useState('');
+      const [sinceMinutes, setSinceMinutes] = useState('60');
+      const [limit, setLimit] = useState(50);
+      const [results, setResults] = useState([]);
+      const [loading, setLoading] = useState(false);
+      const [metrics, setMetrics] = useState(null);
+
+      const handleSearch = async () => {
+        setLoading(true);
+        try {
+          const params = new URLSearchParams();
+          if (query.trim()) params.set('q', query.trim());
+          if (level) params.set('level', level);
+          if (service.trim()) params.set('service', service.trim());
+          if (sinceMinutes) params.set('sinceMinutes', sinceMinutes);
+          params.set('limit', limit);
+
+          const res = await fetch(`${API_BASE}/api/search?${params.toString()}`);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          setResults(data.results || []);
+          setMetrics({ count: data.count || 0, tookMs: data.tookMs || 0 });
+        } catch (err) {
+          onNotify(`Search error: ${err.message}`, 'error');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      return (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', padding: '16px 20px', gap: 14 }}>
+          {/* Query Bar */}
+          <div className="neu-raised" style={{ padding: '14px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <input
+                type="text"
+                className="neu-input"
+                style={{ flex: 1, fontSize: 14 }}
+                placeholder='Lucene query or search terms, e.g. "timeout" or "database error"'
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              />
+              <button onClick={handleSearch} className="neu-btn neu-btn-primary" disabled={loading}>
+                {loading ? 'Searching...' : '⚡ Search Lucene'}
+              </button>
+            </div>
+
+            {/* Quick Filters */}
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+              <select className="neu-input" value={level} onChange={(e) => setLevel(e.target.value)} style={{ width: 130 }}>
+                <option value="">Any Level</option>
+                <option value="ERROR">ERROR</option>
+                <option value="WARN">WARN</option>
+                <option value="INFO">INFO</option>
+                <option value="DEBUG">DEBUG</option>
+              </select>
+
+              <input
+                type="text"
+                className="neu-input"
+                placeholder="Service name..."
+                value={service}
+                onChange={(e) => setService(e.target.value)}
+                style={{ width: 150 }}
+              />
+
+              <select className="neu-input" value={sinceMinutes} onChange={(e) => setSinceMinutes(e.target.value)} style={{ width: 140 }}>
+                <option value="">All Time</option>
+                <option value="5">Last 5 min</option>
+                <option value="15">Last 15 min</option>
+                <option value="60">Last 1 hour</option>
+                <option value="360">Last 6 hours</option>
+                <option value="1440">Last 24 hours</option>
+              </select>
+
+              <select className="neu-input" value={limit} onChange={(e) => setLimit(Number(e.target.value))} style={{ width: 110 }}>
+                <option value="25">Top 25</option>
+                <option value="50">Top 50</option>
+                <option value="100">Top 100</option>
+                <option value="250">Top 250</option>
+              </select>
+
+              {metrics && (
+                <div style={{ marginLeft: 'auto', display: 'flex', gap: 10 }}>
+                  <span className="neu-badge">Found: <strong>{metrics.count}</strong></span>
+                  <span className="neu-badge" style={{ color: 'var(--c-debug)' }}>Time: <strong>{metrics.tookMs} ms</strong></span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Results Table */}
+          <div className="neu-sunken-deep" style={{ flex: 1, overflowY: 'auto', padding: 12 }}>
+            {results.length === 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-faint)', gap: 8 }}>
+                <span style={{ fontSize: 36 }}>🔍</span>
+                <span>Enter search parameters and click "Search Lucene" to query the index.</span>
+              </div>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--neu-light)' }}>
+                    <th style={{ padding: '8px 12px' }}>Timestamp</th>
+                    <th style={{ padding: '8px 12px' }}>Level</th>
+                    <th style={{ padding: '8px 12px' }}>Service</th>
+                    <th style={{ padding: '8px 12px' }}>Message</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {results.map((row, idx) => (
+                    <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                      <td className="mono" style={{ padding: '10px 12px', color: 'var(--text-faint)', whiteSpace: 'nowrap' }}>
+                        {formatDateTime(row.timestamp)}
+                      </td>
+                      <td style={{ padding: '10px 12px' }}>
+                        <span className={`neu-badge ${row.level}`} style={{ fontSize: 10 }}>{row.level}</span>
+                      </td>
+                      <td style={{ padding: '10px 12px', color: 'var(--accent)', fontWeight: 600 }}>
+                        {row.service}
+                      </td>
+                      <td className="mono" style={{ padding: '10px 12px', color: 'var(--text-main)', wordBreak: 'break-all' }}>
+                        {row.message}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // ===================================================================
+    // TAB 3: HISTOGRAM VIEW (Apache ECharts Time-Series)
+    // ===================================================================
+    function HistogramView({ onNotify }) {
+      const chartRef = useRef(null);
+      const echartsInstance = useRef(null);
+      const [minutes, setMinutes] = useState('60');
+      const [bucketSeconds, setBucketSeconds] = useState('300');
+      const [level, setLevel] = useState('');
+      const [serviceName, setServiceName] = useState('');
+
+      const fetchHistogram = useCallback(async () => {
+        try {
+          const params = new URLSearchParams({ minutes, bucketSeconds });
+          if (level) params.set('level', level);
+          if (serviceName.trim()) params.set('serviceName', serviceName.trim());
+
+          const res = await fetch(`${API_BASE}/api/logs/histogram?${params.toString()}`);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          renderChart(data);
+        } catch (err) {
+          onNotify(`Histogram error: ${err.message}`, 'error');
+        }
+      }, [minutes, bucketSeconds, level, serviceName]);
+
+      const renderChart = (data) => {
+        if (!chartRef.current) return;
+        if (!echartsInstance.current) {
+          echartsInstance.current = echarts.init(chartRef.current, null, { renderer: 'canvas' });
+        }
+
+        const xData = (data || []).map(d => formatTime(d.time || d.timestamp));
+        const yData = (data || []).map(d => d.count || 0);
+
+        const option = {
+          backgroundColor: 'transparent',
+          tooltip: {
+            trigger: 'axis',
+            backgroundColor: '#181e2b',
+            borderColor: '#212b3d',
+            borderWidth: 1,
+            textStyle: { color: '#e2e8f5', fontFamily: 'Inter' },
+            formatter: (params) => {
+              const p = params[0];
+              return `<strong>${p.name}</strong><br/>Log Volume: <span style="color:#4f8eff;font-weight:700">${p.value}</span>`;
+            }
+          },
+          grid: { top: 24, right: 24, bottom: 44, left: 54, containLabel: true },
+          xAxis: {
+            type: 'category',
+            data: xData,
+            axisLine: { lineStyle: { color: '#212b3d' } },
+            axisTick: { show: false },
+            axisLabel: { color: '#7d8ea8', fontSize: 11 }
+          },
+          yAxis: {
+            type: 'value',
+            splitLine: { lineStyle: { color: '#1f2737', type: 'dashed' } },
+            axisLabel: { color: '#7d8ea8', fontSize: 11 }
+          },
+          series: [
+            {
+              name: 'Logs',
+              type: 'bar',
+              data: yData,
+              barMaxWidth: 36,
+              itemStyle: {
+                borderRadius: [6, 6, 0, 0],
+                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                  { offset: 0,   color: '#4f8eff' },
+                  { offset: 0.5, color: '#8a63ff' },
+                  { offset: 1,   color: 'rgba(79, 142, 255, 0.1)' }
+                ]),
+                shadowColor: 'rgba(79, 142, 255, 0.35)',
+                shadowBlur: 10
+              }
+            }
+          ]
+        };
+
+        echartsInstance.current.setOption(option);
+      };
+
+      useEffect(() => {
+        fetchHistogram();
+        const handleResize = () => echartsInstance.current && echartsInstance.current.resize();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+      }, [fetchHistogram]);
+
+      return (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', padding: '16px 20px', gap: 14 }}>
+          {/* Chart Controls */}
+          <div className="neu-raised" style={{ padding: '12px 18px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              📊 Aggregation Filters
+            </span>
+
+            <select className="neu-input" value={minutes} onChange={(e) => setMinutes(e.target.value)} style={{ width: 140 }}>
+              <option value="15">Last 15 min</option>
+              <option value="60">Last 1 hour</option>
+              <option value="360">Last 6 hours</option>
+              <option value="1440">Last 24 hours</option>
+            </select>
+
+            <select className="neu-input" value={bucketSeconds} onChange={(e) => setBucketSeconds(e.target.value)} style={{ width: 140 }}>
+              <option value="60">1 min buckets</option>
+              <option value="300">5 min buckets</option>
+              <option value="900">15 min buckets</option>
+              <option value="3600">1 hr buckets</option>
+            </select>
+
+            <select className="neu-input" value={level} onChange={(e) => setLevel(e.target.value)} style={{ width: 130 }}>
+              <option value="">All Levels</option>
+              <option value="ERROR">ERROR</option>
+              <option value="WARN">WARN</option>
+              <option value="INFO">INFO</option>
+              <option value="DEBUG">DEBUG</option>
+            </select>
+
+            <input
+              type="text"
+              className="neu-input"
+              placeholder="Service filter..."
+              value={serviceName}
+              onChange={(e) => setServiceName(e.target.value)}
+              style={{ width: 150 }}
+            />
+
+            <button onClick={fetchHistogram} className="neu-btn neu-btn-sm" style={{ marginLeft: 'auto' }}>
+              ↻ Refresh
+            </button>
+          </div>
+
+          {/* Neumorphic Chart Well */}
+          <div className="neu-sunken-deep" style={{ flex: 1, padding: 16, position: 'relative' }}>
+            <div ref={chartRef} style={{ width: '100%', height: '100%' }} />
+          </div>
+        </div>
+      );
+    }
+
+    // ===================================================================
+    // TAB 4: ALERT RULES & WEBHOOK TRIGGERS (Week 4 Alerting System)
+    // ===================================================================
+    function AlertRulesView({ onNotify }) {
+      const [rules, setRules] = useState([]);
+      const [showNewRuleModal, setShowNewRuleModal] = useState(false);
+      const [evaluating, setEvaluating] = useState(false);
+      const [testWebhookUrl, setTestWebhookUrl] = useState('simulated://slack-alerts');
+
+      // Form State
+      const [name, setName] = useState('');
+      const [query, setQuery] = useState('level:ERROR');
+      const [threshold, setThreshold] = useState(5);
+      const [windowMinutes, setWindowMinutes] = useState(5);
+      const [cooldownMinutes, setCooldownMinutes] = useState(15);
+      const [severity, setSeverity] = useState('HIGH');
+      const [webhookUrl, setWebhookUrl] = useState('simulated://ops-channel');
+      const [notifyEmail, setNotifyEmail] = useState('');
+
+      const fetchRules = async () => {
+        try {
+          const res = await fetch(`${API_BASE}/api/alerts/rules`);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          setRules(Array.isArray(data) ? data : Object.values(data));
+        } catch (err) {
+          onNotify(`Failed to fetch alert rules: ${err.message}`, 'error');
+        }
+      };
+
+      useEffect(() => {
+        fetchRules();
+      }, []);
+
+      const handleSaveRule = async (e) => {
+        e.preventDefault();
+        if (!name.trim() || !query.trim()) {
+          onNotify('Name and query are required', 'warn');
+          return;
+        }
+
+        const newRule = {
+          name: name.trim(),
+          query: query.trim(),
+          threshold: Number(threshold),
+          windowMinutes: Number(windowMinutes),
+          cooldownMinutes: Number(cooldownMinutes),
+          severity,
+          webhookUrl: webhookUrl.trim() || null,
+          notifyEmail: notifyEmail.trim() || null,
+          enabled: true
+        };
+
+        try {
+          const res = await fetch(`${API_BASE}/api/alerts/rules`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newRule)
+          });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          onNotify(`Rule "${name}" saved successfully!`, 'success');
+          setShowNewRuleModal(false);
+          setName('');
+          fetchRules();
+        } catch (err) {
+          onNotify(`Save error: ${err.message}`, 'error');
+        }
+      };
+
+      const handleToggleRule = async (rule) => {
+        try {
+          const updated = { ...rule, enabled: !rule.enabled };
+          const res = await fetch(`${API_BASE}/api/alerts/rules`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updated)
+          });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          fetchRules();
+        } catch (err) {
+          onNotify(`Toggle error: ${err.message}`, 'error');
+        }
+      };
+
+      const handleDeleteRule = async (id) => {
+        if (!confirm(`Delete alert rule ${id}?`)) return;
+        try {
+          const res = await fetch(`${API_BASE}/api/alerts/rules/${id}`, { method: 'DELETE' });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          onNotify('Rule deleted', 'info');
+          fetchRules();
+        } catch (err) {
+          onNotify(`Delete error: ${err.message}`, 'error');
+        }
+      };
+
+      const handleEvaluateNow = async () => {
+        setEvaluating(true);
+        try {
+          const res = await fetch(`${API_BASE}/api/alerts/evaluate`, { method: 'POST' });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          const breachCount = (data.breaches || []).length;
+          if (breachCount > 0) {
+            onNotify(`Breach Detected: ${breachCount} threshold breach(es) found!`, 'error');
+          } else {
+            onNotify('Scan Complete: All queries within healthy thresholds.', 'success');
+          }
+        } catch (err) {
+          onNotify(`Evaluation failed: ${err.message}`, 'error');
+        } finally {
+          setEvaluating(false);
+        }
+      };
+
+      const handleTestWebhook = async () => {
+        try {
+          const res = await fetch(`${API_BASE}/api/alerts/test-webhook`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ webhookUrl: testWebhookUrl })
+          });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          onNotify('Test webhook payload dispatched successfully!', 'success');
+        } catch (err) {
+          onNotify(`Test webhook failed: ${err.message}`, 'error');
+        }
+      };
+
+      return (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', padding: '16px 20px', gap: 14, overflowY: 'auto' }}>
+          {/* Action Bar */}
+          <div className="neu-raised" style={{ padding: '12px 18px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              🚨 Alerting Rules ({rules.length})
+            </span>
+
+            <button onClick={() => setShowNewRuleModal(!showNewRuleModal)} className="neu-btn neu-btn-primary neu-btn-sm">
+              {showNewRuleModal ? '✕ Close Form' : '＋ New Alert Rule'}
+            </button>
+
+            <button onClick={handleEvaluateNow} className="neu-btn neu-btn-sm" disabled={evaluating}>
+              {evaluating ? '⏳ Scanning Index...' : '⚡ Evaluate All Rules'}
+            </button>
+
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input
+                type="text"
+                className="neu-input"
+                style={{ width: 220 }}
+                value={testWebhookUrl}
+                onChange={(e) => setTestWebhookUrl(e.target.value)}
+                placeholder="Webhook URL..."
+              />
+              <button onClick={handleTestWebhook} className="neu-btn neu-btn-sm">
+                🧪 Test Hook
+              </button>
+            </div>
+          </div>
+
+          {/* New Rule Modal / Form */}
+          {showNewRuleModal && (
+            <form onSubmit={handleSaveRule} className="neu-raised-lg" style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--text-main)' }}>Configure New Alert Rule</div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <div>
+                  <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>Rule Name</label>
+                  <input type="text" className="neu-input" style={{ width: '100%', marginTop: 4 }} placeholder="e.g. Excessive Payment Failures" value={name} onChange={(e) => setName(e.target.value)} required />
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>Severity</label>
+                  <select className="neu-input" style={{ width: '100%', marginTop: 4 }} value={severity} onChange={(e) => setSeverity(e.target.value)}>
+                    <option value="CRITICAL">CRITICAL</option>
+                    <option value="HIGH">HIGH</option>
+                    <option value="MEDIUM">MEDIUM</option>
+                    <option value="LOW">LOW</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>Lucene Query</label>
+                <input type="text" className="neu-input" style={{ width: '100%', marginTop: 4 }} placeholder='e.g. level:ERROR service:payment "timeout"' value={query} onChange={(e) => setQuery(e.target.value)} required />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
+                <div>
+                  <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>Threshold (breach count)</label>
+                  <input type="number" className="neu-input" style={{ width: '100%', marginTop: 4 }} min="1" value={threshold} onChange={(e) => setThreshold(e.target.value)} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>Time Window (minutes)</label>
+                  <input type="number" className="neu-input" style={{ width: '100%', marginTop: 4 }} min="1" value={windowMinutes} onChange={(e) => setWindowMinutes(e.target.value)} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>Cooldown (minutes)</label>
+                  <input type="number" className="neu-input" style={{ width: '100%', marginTop: 4 }} min="1" value={cooldownMinutes} onChange={(e) => setCooldownMinutes(e.target.value)} />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <div>
+                  <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>Webhook URL</label>
+                  <input type="text" className="neu-input" style={{ width: '100%', marginTop: 4 }} placeholder="https://... or simulated://..." value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>Notification Email (optional)</label>
+                  <input type="email" className="neu-input" style={{ width: '100%', marginTop: 4 }} placeholder="alerts@axlero.internal" value={notifyEmail} onChange={(e) => setNotifyEmail(e.target.value)} />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 6 }}>
+                <button type="button" onClick={() => setShowNewRuleModal(false)} className="neu-btn neu-btn-sm">Cancel</button>
+                <button type="submit" className="neu-btn neu-btn-primary neu-btn-sm">💾 Save Rule</button>
+              </div>
+            </form>
+          )}
+
+          {/* Neumorphic Cards Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
+            {rules.map((rule) => (
+              <div key={rule.id} className="neu-raised" style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-main)' }}>{rule.name}</div>
+                    <div style={{ fontSize: 10.5, color: 'var(--text-faint)', marginTop: 2 }}>ID: {rule.id}</div>
+                  </div>
+                  <span className={`neu-badge ${rule.severity}`}>{rule.severity}</span>
+                </div>
+
+                {/* Sunken query badge */}
+                <div className="neu-sunken mono" style={{ padding: '6px 10px', fontSize: 11, color: 'var(--accent)', wordBreak: 'break-all' }}>
+                  {rule.query}
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 11.5, color: 'var(--text-muted)' }}>
+                  <div>⚡ Threshold: <strong style={{ color: 'var(--text-main)' }}>{rule.threshold} hits</strong></div>
+                  <div>⏱ Window: <strong style={{ color: 'var(--text-main)' }}>{rule.windowMinutes} min</strong></div>
+                  <div>🔕 Cooldown: <strong style={{ color: 'var(--text-main)' }}>{rule.cooldownMinutes} min</strong></div>
+                  <div>🔗 Webhook: <strong style={{ color: 'var(--text-main)' }}>{rule.webhookUrl ? 'Configured' : 'None'}</strong></div>
+                </div>
+
+                {/* Card footer controls */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4, paddingTop: 10, borderTop: '1px solid var(--neu-light)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div
+                      className={`neu-toggle ${rule.enabled !== false ? 'checked' : ''}`}
+                      onClick={() => handleToggleRule(rule)}
+                    >
+                      <div className="neu-toggle-thumb" />
+                    </div>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: rule.enabled !== false ? 'var(--c-success)' : 'var(--text-faint)' }}>
+                      {rule.enabled !== false ? 'Enabled' : 'Disabled'}
+                    </span>
+                  </div>
+
+                  <button onClick={() => handleDeleteRule(rule.id)} className="neu-btn neu-btn-danger neu-btn-sm">
+                    🗑 Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // ===================================================================
+    // TAB 5: AUDIT NOTIFICATIONS VIEW
+    // ===================================================================
+    function NotificationHistoryView({ onNotify }) {
+      const [history, setHistory] = useState([]);
+
+      const fetchHistory = async () => {
+        try {
+          const res = await fetch(`${API_BASE}/api/alerts/history`);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          setHistory(Array.isArray(data) ? data : []);
+        } catch (err) {
+          onNotify(`History fetch error: ${err.message}`, 'error');
+        }
+      };
+
+      useEffect(() => {
+        fetchHistory();
+        const interval = setInterval(fetchHistory, 15000);
+        return () => clearInterval(interval);
+      }, []);
+
+      return (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', padding: '16px 20px', gap: 14 }}>
+          <div className="neu-raised" style={{ padding: '12px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-main)' }}>
+              📬 Dispatch Audit Trail ({history.length} records)
+            </span>
+            <button onClick={fetchHistory} className="neu-btn neu-btn-sm">↻ Refresh</button>
+          </div>
+
+          <div className="neu-sunken-deep" style={{ flex: 1, overflowY: 'auto', padding: 12 }}>
+            {history.length === 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-faint)', gap: 8 }}>
+                <span style={{ fontSize: 36 }}>📬</span>
+                <span>No webhook or email deliveries recorded yet.</span>
+              </div>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 12.5 }}>
+                <thead>
+                  <tr style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--neu-light)' }}>
+                    <th style={{ padding: '8px 12px' }}>Timestamp</th>
+                    <th style={{ padding: '8px 12px' }}>Rule ID</th>
+                    <th style={{ padding: '8px 12px' }}>Channel</th>
+                    <th style={{ padding: '8px 12px' }}>Destination</th>
+                    <th style={{ padding: '8px 12px' }}>Status</th>
+                    <th style={{ padding: '8px 12px' }}>HTTP Code</th>
+                    <th style={{ padding: '8px 12px' }}>Audit Message</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...history].reverse().map((rec, idx) => (
+                    <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                      <td className="mono" style={{ padding: '9px 12px', color: 'var(--text-faint)' }}>
+                        {formatDateTime(rec.dispatchedAt || rec.timestamp)}
+                      </td>
+                      <td className="mono" style={{ padding: '9px 12px', color: 'var(--accent)' }}>
+                        {rec.ruleId}
+                      </td>
+                      <td style={{ padding: '9px 12px', fontWeight: 600 }}>
+                        {rec.channel}
+                      </td>
+                      <td className="mono" style={{ padding: '9px 12px', color: 'var(--text-muted)' }}>
+                        {rec.target}
+                      </td>
+                      <td style={{ padding: '9px 12px' }}>
+                        <span className="neu-badge" style={{ color: rec.success ? 'var(--c-success)' : 'var(--c-error)' }}>
+                          {rec.success ? '✓ Delivered' : '✗ Failed'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '9px 12px', fontWeight: 700, color: rec.httpStatusCode === 200 ? 'var(--c-success)' : 'var(--c-warn)' }}>
+                        {rec.httpStatusCode || '--'}
+                      </td>
+                      <td style={{ padding: '9px 12px', color: 'var(--text-muted)' }}>
+                        {rec.message}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // ===================================================================
+    // MAIN REACT DASHBOARD ROOT
+    // ===================================================================
+    function DashboardApp() {
+      const [activeTab, setActiveTab] = useState('live-tail');
+      const [logs, setLogs] = useState([]);
+      const [paused, setPaused] = useState(false);
+      const [filterText, setFilterText] = useState('');
+      const [levelFilter, setLevelFilter] = useState('');
+
+      // Telemetry
+      const [lps, setLps] = useState(0);
+      const [totalLogs, setTotalLogs] = useState(0);
+      const [totalErrors, setTotalErrors] = useState(0);
+      const [wsConnected, setWsConnected] = useState(false);
+      const [wsConnecting, setWsConnecting] = useState(true);
+      const [toasts, setToasts] = useState([]);
+
+      const lpsCounter = useRef(0);
+      const wsRef = useRef(null);
+
+      // Add Toast
+      const showToast = useCallback((msg, type = 'info') => {
+        const id = Date.now() + Math.random();
+        setToasts(prev => [...prev, { id, msg, type }]);
+        setTimeout(() => {
+          setToasts(prev => prev.filter(t => t.id !== id));
+        }, 4000);
+      }, []);
+
+      // LPS ticker
+      useEffect(() => {
+        const interval = setInterval(() => {
+          setLps(lpsCounter.current);
+          lpsCounter.current = 0;
+        }, 1000);
+        return () => clearInterval(interval);
+      }, []);
+
+      // WebSocket Connection
+      useEffect(() => {
+        let isMounted = true;
+        let reconnectTimer = null;
+
+        const connect = () => {
+          setWsConnecting(true);
+          try {
+            const ws = new WebSocket(WS_URL);
+            wsRef.current = ws;
+
+            ws.onopen = () => {
+              if (!isMounted) return;
+              setWsConnected(true);
+              setWsConnecting(false);
+              showToast('WebSocket connected to live logstream', 'success');
+            };
+
+            ws.onmessage = (event) => {
+              if (!isMounted) return;
+              try {
+                const parsed = JSON.parse(event.data);
+                const items = Array.isArray(parsed) ? parsed : [parsed];
+
+                lpsCounter.current += items.length;
+                setTotalLogs(prev => prev + items.length);
+
+                let newErrors = 0;
+                items.forEach(it => { if (it.level === 'ERROR') newErrors++; });
+                if (newErrors > 0) setTotalErrors(prev => prev + newErrors);
+
+                if (!paused) {
+                  setLogs(prev => {
+                    const combined = [...prev, ...items];
+                    return combined.length > MAX_TAIL_LINES ? combined.slice(combined.length - MAX_TAIL_LINES) : combined;
+                  });
+                }
+              } catch (_) {
+                // plain text line
+                const fallbackEntry = {
+                  level: 'INFO',
+                  service: 'ws-stream',
+                  message: event.data,
+                  timestamp: new Date().toISOString()
+                };
+                lpsCounter.current += 1;
+                setTotalLogs(prev => prev + 1);
+                if (!paused) {
+                  setLogs(prev => [...prev.slice(-MAX_TAIL_LINES), fallbackEntry]);
+                }
+              }
+            };
+
+            ws.onerror = () => {
+              if (!isMounted) return;
+              setWsConnected(false);
+              setWsConnecting(false);
+            };
+
+            ws.onclose = () => {
+              if (!isMounted) return;
+              setWsConnected(false);
+              setWsConnecting(false);
+              reconnectTimer = setTimeout(connect, 3000);
+            };
+          } catch (e) {
+            setWsConnected(false);
+            setWsConnecting(false);
+            reconnectTimer = setTimeout(connect, 3000);
+          }
+        };
+
+        connect();
+
+        return () => {
+          isMounted = false;
+          if (reconnectTimer) clearTimeout(reconnectTimer);
+          if (wsRef.current) wsRef.current.close();
+        };
+      }, [paused, showToast]);
+
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <Header
+            lps={lps}
+            totalLogs={totalLogs}
+            totalErrors={totalErrors}
+            wsConnected={wsConnected}
+            wsConnecting={wsConnecting}
+          />
+
+          <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+            <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} unreadAlerts={0} />
+
+            <main style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+              {activeTab === 'live-tail' && (
+                <LiveTailView
+                  logs={logs}
+                  paused={paused}
+                  setPaused={setPaused}
+                  clearLogs={() => setLogs([])}
+                  filterText={filterText}
+                  setFilterText={setFilterText}
+                  levelFilter={levelFilter}
+                  setLevelFilter={setLevelFilter}
+                />
+              )}
+
+              {activeTab === 'search' && (
+                <SearchView onNotify={showToast} />
+              )}
+
+              {activeTab === 'histogram' && (
+                <HistogramView onNotify={showToast} />
+              )}
+
+              {activeTab === 'alerts' && (
+                <AlertRulesView onNotify={showToast} />
+              )}
+
+              {activeTab === 'history' && (
+                <NotificationHistoryView onNotify={showToast} />
+              )}
+            </main>
+          </div>
+
+          {/* Floating Neumorphic Toasts */}
+          <div style={{ position: 'fixed', bottom: 20, right: 20, display: 'flex', flexDirection: 'column', gap: 10, zIndex: 9999 }}>
+            {toasts.map(t => (
+              <div
+                key={t.id}
+                className="neu-raised"
+                style={{
+                  padding: '12px 20px',
+                  borderRadius: 'var(--rad-md)',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  color: t.type === 'error' ? 'var(--c-error)' : t.type === 'warn' ? 'var(--c-warn)' : t.type === 'success' ? 'var(--c-success)' : 'var(--accent)',
+                  boxShadow: 'var(--neu-extruded-lg)'
+                }}
+              >
+                <span>{t.type === 'error' ? '🚨' : t.type === 'success' ? '✅' : 'ℹ️'}</span>
+                <span>{t.msg}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // Mount React App
+    const container = document.getElementById('root');
+    const root = ReactDOM.createRoot(container);
+    root.render(<DashboardApp />);
+  </script>
+</body>
+</html>

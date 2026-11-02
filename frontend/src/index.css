@@ -1,0 +1,222 @@
+/* Neumorphism (Soft UI) Dark Theme */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  color-scheme: dark;
+
+  --neu-bg:       #181e2b;
+  --neu-light:    #212b3d;
+  --neu-dark:     #10141d;
+
+  --neu-extruded:
+    -6px -6px 14px var(--neu-light),
+     6px  6px 14px var(--neu-dark);
+
+  --neu-extruded-lg:
+    -10px -10px 22px var(--neu-light),
+      10px  10px 22px var(--neu-dark);
+
+  --neu-extruded-sm:
+    -3px -3px 8px var(--neu-light),
+     3px  3px 8px var(--neu-dark);
+
+  --neu-sunken:
+    inset -4px -4px 9px var(--neu-light),
+    inset  4px  4px 9px var(--neu-dark);
+
+  --neu-sunken-deep:
+    inset -7px -7px 16px var(--neu-light),
+    inset  7px  7px 16px var(--neu-dark);
+
+  --accent:       #4f8eff;
+  --accent-glow:  rgba(79, 142, 255, 0.35);
+  --accent-soft:  rgba(79, 142, 255, 0.15);
+
+  --neu-active:
+    inset -3px -3px 8px var(--neu-light),
+    inset  3px  3px 8px var(--neu-dark),
+    0 0 16px var(--accent-glow);
+
+  --text-main:    #e2e8f5;
+  --text-muted:   #7d8ea8;
+  --text-faint:   #404d63;
+
+  --c-error:      #ff5a68;
+  --c-warn:       #ffbe3b;
+  --c-info:       #4f8eff;
+  --c-debug:      #34d399;
+  --c-success:    #10b981;
+
+  --rad-sm:       8px;
+  --rad-md:       14px;
+  --rad-lg:       20px;
+  --rad-pill:     9999px;
+
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+body {
+  background-color: var(--neu-bg);
+  color: var(--text-main);
+  height: 100vh;
+  overflow: hidden;
+  font-size: 13.5px;
+  user-select: none;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--neu-bg); }
+::-webkit-scrollbar-thumb {
+  background: var(--neu-light);
+  border-radius: var(--rad-pill);
+}
+
+.neu-raised {
+  background: var(--neu-bg);
+  box-shadow: var(--neu-extruded);
+  border-radius: var(--rad-md);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.neu-raised-lg {
+  background: var(--neu-bg);
+  box-shadow: var(--neu-extruded-lg);
+  border-radius: var(--rad-lg);
+}
+
+.neu-sunken {
+  background: var(--neu-bg);
+  box-shadow: var(--neu-sunken);
+  border-radius: var(--rad-md);
+}
+
+.neu-sunken-deep {
+  background: var(--neu-bg);
+  box-shadow: var(--neu-sunken-deep);
+  border-radius: var(--rad-lg);
+}
+
+.neu-btn {
+  background: var(--neu-bg);
+  color: var(--text-main);
+  box-shadow: var(--neu-extruded);
+  border: none;
+  outline: none;
+  cursor: pointer;
+  font-weight: 600;
+  padding: 9px 18px;
+  border-radius: var(--rad-md);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  transition: all 0.18s ease;
+}
+.neu-btn:hover {
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: -8px -8px 18px var(--neu-light), 8px 8px 18px var(--neu-dark);
+}
+.neu-btn:active, .neu-btn.pressed {
+  transform: translateY(0);
+  box-shadow: var(--neu-sunken);
+  color: var(--accent);
+}
+
+.neu-btn-primary {
+  color: var(--accent);
+  box-shadow: var(--neu-extruded), 0 0 14px var(--accent-soft);
+}
+.neu-btn-primary:hover {
+  box-shadow: -8px -8px 18px var(--neu-light), 8px 8px 18px var(--neu-dark), 0 0 20px var(--accent-glow);
+}
+
+.neu-btn-danger { color: var(--c-error); }
+.neu-btn-sm { padding: 6px 12px; font-size: 12px; border-radius: var(--rad-sm); }
+
+.neu-input {
+  background: var(--neu-bg);
+  box-shadow: var(--neu-sunken);
+  border: none;
+  outline: none;
+  color: var(--text-main);
+  padding: 9px 14px;
+  border-radius: var(--rad-md);
+  font-size: 13px;
+  font-family: inherit;
+  transition: box-shadow 0.2s ease;
+}
+.neu-input:focus {
+  box-shadow: inset -5px -5px 10px var(--neu-light), inset 5px 5px 10px var(--neu-dark), 0 0 10px var(--accent-soft);
+}
+
+select.neu-input {
+  appearance: none;
+  cursor: pointer;
+  padding-right: 32px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237d8ea8' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+
+.neu-toggle {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  border-radius: var(--rad-pill);
+  background: var(--neu-bg);
+  box-shadow: var(--neu-sunken);
+  cursor: pointer;
+  display: inline-block;
+  transition: all 0.2s ease;
+}
+.neu-toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--neu-bg);
+  box-shadow: var(--neu-extruded-sm);
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s;
+}
+.neu-toggle.checked {
+  box-shadow: inset -3px -3px 7px var(--neu-light), inset 3px 3px 7px var(--neu-dark), 0 0 12px var(--accent-soft);
+}
+.neu-toggle.checked .neu-toggle-thumb {
+  transform: translateX(20px);
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.neu-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: var(--rad-pill);
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--neu-bg);
+  box-shadow: var(--neu-sunken);
+}
+.neu-badge.ERROR { color: var(--c-error); box-shadow: inset -2px -2px 5px var(--neu-light), inset 2px 2px 5px var(--neu-dark), 0 0 8px rgba(255, 90, 104, 0.2); }
+.neu-badge.WARN  { color: var(--c-warn);  box-shadow: inset -2px -2px 5px var(--neu-light), inset 2px 2px 5px var(--neu-dark), 0 0 8px rgba(255, 190, 59, 0.2); }
+.neu-badge.INFO  { color: var(--c-info);  box-shadow: inset -2px -2px 5px var(--neu-light), inset 2px 2px 5px var(--neu-dark), 0 0 8px rgba(79, 142, 255, 0.2); }
+.neu-badge.DEBUG { color: var(--c-debug); box-shadow: inset -2px -2px 5px var(--neu-light), inset 2px 2px 5px var(--neu-dark), 0 0 8px rgba(52, 211, 153, 0.2); }
+.neu-badge.CRITICAL { color: var(--c-error); }
+.neu-badge.HIGH     { color: #ff8544; }
+.neu-badge.MEDIUM   { color: var(--c-warn); }
+.neu-badge.LOW      { color: var(--c-info); }
+
+.mono { font-family: 'JetBrains Mono', Consolas, monospace; }
+
+@keyframes pulse-ring {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.3); opacity: 0.2; }
+}
