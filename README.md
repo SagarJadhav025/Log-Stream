@@ -41,3 +41,5 @@ This project is a custom observability and log analytics platform. It is designe
 4. **Seed 1 Million Logs (Optional):**
    Run with `--logstream.seed=true` to index 1,000,000 mock logs for benchmarking and alert testing.
 5. **Run the server:** Start the Spring Boot application from `LogstreamApplication`.
+
+[//]: # (   [logstream] [nio-8080-exec-2] c.a.l.a.d.WebhookNotificationDispatcher)
