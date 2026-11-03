@@ -1,4 +1,3 @@
-
 package com.axlero.logstream.pipeline;
 
 import com.axlero.logstream.api.LogApiController;
