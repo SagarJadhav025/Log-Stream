@@ -39,19 +39,19 @@ class LogHistogramTest {
     }
 
     private void assertEquals(int i, int size) {
-        // TODO Auto-generated method stub
+       
         throw new UnsupportedOperationException("Unimplemented method 'assertEquals'");
     }
 
 
     private void assertEquals(List<Integer> i, List<Integer> size) {
-        // TODO Auto-generated method stub
+    
         throw new UnsupportedOperationException("Unimplemented method 'assertEquals'");
     }
 
 
     private void assertEquals(Instant t02, Instant size) {
-        // TODO Auto-generated method stub
+       
         throw new UnsupportedOperationException("Unimplemented method 'assertEquals'");
     }
 
