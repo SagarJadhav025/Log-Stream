@@ -1,6 +1,7 @@
 
 package com.axlero.logstream.api;
 
+import com.axlero.logstream.search.LuceneQuerySanitizer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queryparser.classic.QueryParser;
@@ -77,7 +78,7 @@ public class LogApiController {
         if (text != null && !text.isBlank()) {
             builder.add(
                     new QueryParser("message", new StandardAnalyzer())
-                            .parse(text),
+                            .parse(LuceneQuerySanitizer.sanitize(text)),
                     BooleanClause.Occur.MUST
             );
             hasFilter = true;
