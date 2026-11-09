@@ -49,10 +49,27 @@ export default function App() {
     let isMounted = true;
     let reconnectTimer = null;
 
-    const connect = () => {
+    const connect = async () => {
       setWsConnecting(true);
       try {
-        const ws = new WebSocket(WS_URL);
+        let token = localStorage.getItem('logstream_jwt');
+        if (!token) {
+          try {
+            const tokenRes = await fetch('/api/auth/token', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ username: 'dashboard-admin', roles: ['ROLE_ADMIN', 'ROLE_VIEWER'] })
+            });
+            if (tokenRes.ok) {
+              const data = await tokenRes.json();
+              token = data.token;
+              localStorage.setItem('logstream_jwt', token);
+            }
+          } catch (_) {}
+        }
+
+        const wsEndpoint = token ? `${WS_URL}?token=${encodeURIComponent(token)}` : WS_URL;
+        const ws = new WebSocket(wsEndpoint);
         wsRef.current = ws;
 
         ws.onopen = () => {
