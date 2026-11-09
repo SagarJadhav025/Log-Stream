@@ -125,7 +125,8 @@ public class RuleEngine {
     }
 
     private Query parseUserQuery(String queryText) throws ParseException {
-        if (queryText == null || queryText.isBlank() || queryText.equals("*:*")) {
+        String sanitized = com.axlero.logstream.search.LuceneQuerySanitizer.sanitizeLuceneSyntax(queryText);
+        if (sanitized.equals("*:*")) {
             return new MatchAllDocsQuery();
         }
         QueryParser parser = new QueryParser("message", analyzer) {
@@ -137,6 +138,6 @@ public class RuleEngine {
                 return super.newTermQuery(term, boost);
             }
         };
-        return parser.parse(queryText);
+        return parser.parse(sanitized);
     }
 }

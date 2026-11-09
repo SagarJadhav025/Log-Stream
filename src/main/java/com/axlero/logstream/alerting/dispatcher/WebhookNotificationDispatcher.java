@@ -52,6 +52,16 @@ public class WebhookNotificationDispatcher implements NotificationDispatcher {
         try {
             String jsonBody = payload.toJson();
 
+            // SSRF Protection: Block cloud metadata and invalid schemes
+            if (!webhookUrl.startsWith("mock://") && !webhookUrl.startsWith("simulated://")) {
+                java.net.URI uri = java.net.URI.create(webhookUrl);
+                String host = uri.getHost();
+                if (host == null || host.equalsIgnoreCase("169.254.169.254") || host.equalsIgnoreCase("metadata.google.internal")) {
+                    return NotificationDeliveryRecord.of(
+                            rule.id(), getChannelName(), webhookUrl, false, 400, "Blocked dangerous or internal destination URL (SSRF Defense)");
+                }
+            }
+
             // Support simulated webhook targets without requiring external network
             if (webhookUrl.startsWith("mock://") || webhookUrl.startsWith("simulated://")) {
                 logger.info("Simulated Webhook dispatched to '{}': {}", webhookUrl, jsonBody);
