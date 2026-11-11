@@ -1,3 +1,4 @@
+
 package com.axlero.logstream.alerting.service;
 
 import com.axlero.logstream.alerting.dispatcher.NotificationDispatcher;
@@ -21,6 +22,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Coordinates alert rule evaluation, cooldown enforcement, and notification dispatching.
@@ -28,24 +30,36 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 @Service
 public class AlertManagerService {
 
-    private static final Logger logger = LoggerFactory.getLogger(AlertManagerService.class);
+    private static final Logger logger =
+            LoggerFactory.getLogger(AlertManagerService.class);
+
     private static final int MAX_AUDIT_HISTORY = 200;
 
     private final RuleEngine ruleEngine;
     private final List<NotificationDispatcher> dispatchers;
 
     private final Map<String, AlertRule> rules = new ConcurrentHashMap<>();
-    private final Map<String, Instant> lastFired = new ConcurrentHashMap<>();
-    private final ConcurrentLinkedDeque<NotificationDeliveryRecord> deliveryHistory = new ConcurrentLinkedDeque<>();
 
-    public AlertManagerService(RuleEngine ruleEngine, List<NotificationDispatcher> dispatchers) {
+    private final Map<String, Instant> lastFired = new ConcurrentHashMap<>();
+
+    private final Map<String, ReentrantLock> evaluationLocks =
+            new ConcurrentHashMap<>();
+
+    private final ConcurrentLinkedDeque<NotificationDeliveryRecord> deliveryHistory =
+            new ConcurrentLinkedDeque<>();
+
+    public AlertManagerService(
+            RuleEngine ruleEngine,
+            List<NotificationDispatcher> dispatchers) {
+
         this.ruleEngine = ruleEngine;
         this.dispatchers = dispatchers != null ? dispatchers : List.of();
     }
 
     @PostConstruct
     void initDefaultRules() {
-        // Seed initial default observability rules matching project specs
+
+        // Seed initial default observability rules matching project specs.
         saveRule(new AlertRule(
                 "rule-error-spike",
                 "High Error Spike",
@@ -98,64 +112,136 @@ public class AlertManagerService {
      * @return List of generated breach events
      */
     public List<AlertBreachEvent> evaluateAll() {
+
         List<AlertBreachEvent> breaches = new ArrayList<>();
 
         for (AlertRule rule : rules.values()) {
+
             if (!rule.enabled()) {
                 continue;
             }
 
-            if (isInCooldown(rule)) {
-                logger.debug("Rule '{}' is currently in cooldown; skipping evaluation.", rule.name());
-                continue;
-            }
-
-            Optional<AlertBreachEvent> breachOpt = ruleEngine.evaluate(rule);
-            if (breachOpt.isPresent()) {
-                AlertBreachEvent breach = breachOpt.get();
-                breaches.add(breach);
-                lastFired.put(rule.id(), Instant.now());
-                dispatchNotifications(breach, rule);
-            }
+            evaluateRuleWithLock(rule, false)
+                    .ifPresent(breaches::add);
         }
 
         return breaches;
     }
 
     /**
-     * Evaluates a specific rule immediately, bypassing cooldown for manual test/trigger.
+     * Evaluates a specific rule immediately.
+     * Optionally bypasses cooldown for manual test/trigger operations.
      */
-    public Optional<AlertBreachEvent> evaluateRule(String ruleId, boolean bypassCooldown) {
+    public Optional<AlertBreachEvent> evaluateRule(
+            String ruleId,
+            boolean bypassCooldown) {
+
         AlertRule rule = rules.get(ruleId);
+
         if (rule == null) {
             return Optional.empty();
         }
 
-        if (!bypassCooldown && isInCooldown(rule)) {
-            logger.info("Rule '{}' is in cooldown.", rule.name());
-            return Optional.empty();
+        return evaluateRuleWithLock(rule, bypassCooldown);
+    }
+
+    /**
+     * Evaluates a rule while holding its dedicated lock.
+     * This prevents concurrent evaluations of the same rule
+     * from generating duplicate notifications.
+     */
+    private Optional<AlertBreachEvent> evaluateRuleWithLock(
+            AlertRule rule,
+            boolean bypassCooldown) {
+
+        ReentrantLock lock = evaluationLocks.computeIfAbsent(
+                rule.id(),
+                id -> new ReentrantLock()
+        );
+
+        lock.lock();
+
+        try {
+
+            if (!bypassCooldown && isInCooldown(rule)) {
+
+                logger.debug(
+                        "Rule '{}' is currently in cooldown; skipping evaluation.",
+                        rule.name()
+                );
+
+                return Optional.empty();
+            }
+
+            Optional<AlertBreachEvent> breachOpt =
+                    ruleEngine.evaluate(rule);
+
+            breachOpt.ifPresent(breach -> {
+                lastFired.put(rule.id(), Instant.now());
+                dispatchNotifications(breach, rule);
+            });
+
+            return breachOpt;
+
+        } finally {
+            lock.unlock();
         }
-
-        Optional<AlertBreachEvent> breachOpt = ruleEngine.evaluate(rule);
-        breachOpt.ifPresent(breach -> {
-            lastFired.put(rule.id(), Instant.now());
-            dispatchNotifications(breach, rule);
-        });
-
-        return breachOpt;
     }
 
     /**
      * Dispatches notifications across all supported dispatchers.
+     *
+     * Each dispatcher is isolated so that one failure does not
+     * prevent subsequent notification channels from executing.
      */
-    public List<NotificationDeliveryRecord> dispatchNotifications(AlertBreachEvent breach, AlertRule rule) {
+    public List<NotificationDeliveryRecord> dispatchNotifications(
+            AlertBreachEvent breach,
+            AlertRule rule) {
+
         List<NotificationDeliveryRecord> records = new ArrayList<>();
 
         for (NotificationDispatcher dispatcher : dispatchers) {
-            if (dispatcher.supports(rule)) {
-                NotificationDeliveryRecord record = dispatcher.dispatch(breach, rule);
+
+            if (!dispatcher.supports(rule)) {
+                continue;
+            }
+
+            String channel = dispatcher.getChannelName();
+
+            String destination = "EMAIL".equalsIgnoreCase(channel)
+                    ? rule.notifyEmail()
+                    : rule.webhookUrl();
+
+            try {
+
+                NotificationDeliveryRecord record =
+                        dispatcher.dispatch(breach, rule);
+
                 recordDelivery(record);
                 records.add(record);
+
+            } catch (RuntimeException e) {
+
+                logger.error(
+                        "Notification dispatch failed for rule '{}' on channel '{}': {}",
+                        rule.id(),
+                        channel,
+                        e.getMessage(),
+                        e
+                );
+
+                NotificationDeliveryRecord failureRecord =
+                        NotificationDeliveryRecord.of(
+                                rule.id(),
+                                channel,
+                                destination,
+                                false,
+                                0,
+                                "Dispatch failure: " + e.getMessage()
+                        );
+
+                recordDelivery(failureRecord);
+                records.add(failureRecord);
             }
         }
 
@@ -166,6 +252,7 @@ public class AlertManagerService {
      * Tests a webhook destination with a mock breach event.
      */
     public NotificationDeliveryRecord testWebhook(String webhookUrl) {
+
         AlertRule testRule = new AlertRule(
                 "test-rule",
                 "Test Alert Notification",
@@ -195,29 +282,52 @@ public class AlertManagerService {
         );
 
         for (NotificationDispatcher dispatcher : dispatchers) {
+
             if ("WEBHOOK".equalsIgnoreCase(dispatcher.getChannelName())) {
-                NotificationDeliveryRecord record = dispatcher.dispatch(testBreach, testRule);
+
+                NotificationDeliveryRecord record =
+                        dispatcher.dispatch(testBreach, testRule);
+
                 recordDelivery(record);
                 return record;
             }
         }
 
         return NotificationDeliveryRecord.of(
-                "test-rule", "WEBHOOK", webhookUrl, false, 500, "No webhook dispatcher found"
+                "test-rule",
+                "WEBHOOK",
+                webhookUrl,
+                false,
+                500,
+                "No webhook dispatcher found"
         );
     }
 
+    /**
+     * Checks whether a rule is currently within its cooldown period.
+     */
     private boolean isInCooldown(AlertRule rule) {
+
         Instant fired = lastFired.get(rule.id());
+
         if (fired == null) {
             return false;
         }
-        Instant cooldownEnd = fired.plus(Duration.ofMinutes(rule.cooldownMinutes()));
+
+        Instant cooldownEnd =
+                fired.plus(Duration.ofMinutes(rule.cooldownMinutes()));
+
         return Instant.now().isBefore(cooldownEnd);
     }
 
+    /**
+     * Records notification delivery attempts.
+     * Keeps only the most recent 200 records.
+     */
     private void recordDelivery(NotificationDeliveryRecord record) {
+
         deliveryHistory.addFirst(record);
+
         while (deliveryHistory.size() > MAX_AUDIT_HISTORY) {
             deliveryHistory.removeLast();
         }
