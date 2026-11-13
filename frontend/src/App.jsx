@@ -6,6 +6,9 @@ import SearchView from './components/SearchView';
 import HistogramView from './components/HistogramView';
 import AlertRulesView from './components/AlertRulesView';
 import NotificationHistoryView from './components/NotificationHistoryView';
+import LogPopupContainer from './components/LogPopupContainer';
+import LogPopupControls from './components/LogPopupControls';
+import { useLogPopups } from './hooks/useLogPopups';
 
 const WS_URL = typeof window !== 'undefined' && window.location.port === '3000'
   ? 'ws://localhost:8080/ws/logs'
@@ -26,8 +29,37 @@ export default function App() {
   const [wsConnecting, setWsConnecting] = useState(true);
   const [toasts, setToasts] = useState([]);
 
+  // Initialize Real-Time Log Popups with High-Throughput Flood Protection
+  const {
+    popups,
+    filters: popupFilters,
+    isMuted: isPopupMuted,
+    selectedLog,
+    setSelectedLog,
+    ingest: ingestLogPopups,
+    dismissPopup,
+    clearAll: clearAllPopups,
+    toggleSticky,
+    pauseTimer,
+    resumeTimer,
+    toggleFilter: togglePopupFilter,
+    toggleMute: togglePopupMute,
+    simulateLog,
+    simulateBurst
+  } = useLogPopups();
+
   const lpsCounter = useRef(0);
   const wsRef = useRef(null);
+  const pausedRef = useRef(paused);
+  const ingestRef = useRef(ingestLogPopups);
+
+  useEffect(() => {
+    pausedRef.current = paused;
+  }, [paused]);
+
+  useEffect(() => {
+    ingestRef.current = ingestLogPopups;
+  }, [ingestLogPopups]);
 
   const showToast = useCallback((msg, type = 'info') => {
     const id = Date.now() + Math.random();
@@ -45,6 +77,7 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
+  // Shared WebSocket connection to Spring Boot LiveTailWebSocketHandler (/ws/logs)
   useEffect(() => {
     let isMounted = true;
     let reconnectTimer = null;
@@ -92,11 +125,17 @@ export default function App() {
             items.forEach(it => { if (it.level === 'ERROR') newErrors++; });
             if (newErrors > 0) setTotalErrors(prev => prev + newErrors);
 
-            if (!paused) {
+            // Feed Live Tail table if unpaused
+            if (!pausedRef.current) {
               setLogs(prev => {
                 const combined = [...prev, ...items];
                 return combined.length > MAX_TAIL_LINES ? combined.slice(combined.length - MAX_TAIL_LINES) : combined;
               });
+            }
+
+            // Pipe into high-throughput flood protection popup buffer
+            if (ingestRef.current) {
+              ingestRef.current(items);
             }
           } catch (_) {
             const fallback = {
@@ -107,8 +146,11 @@ export default function App() {
             };
             lpsCounter.current += 1;
             setTotalLogs(prev => prev + 1);
-            if (!paused) {
+            if (!pausedRef.current) {
               setLogs(prev => [...prev.slice(-MAX_TAIL_LINES), fallback]);
+            }
+            if (ingestRef.current) {
+              ingestRef.current(fallback);
             }
           }
         };
@@ -139,16 +181,29 @@ export default function App() {
       if (reconnectTimer) clearTimeout(reconnectTimer);
       if (wsRef.current) wsRef.current.close();
     };
-  }, [paused, showToast]);
+  }, [showToast]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* Dashboard Header with Live Rate & Popup Controls */}
       <Header
         lps={lps}
         totalLogs={totalLogs}
         totalErrors={totalErrors}
         wsConnected={wsConnected}
         wsConnecting={wsConnecting}
+        popupControls={
+          <LogPopupControls
+            filters={popupFilters}
+            toggleFilter={togglePopupFilter}
+            isMuted={isPopupMuted}
+            toggleMute={togglePopupMute}
+            clearAll={clearAllPopups}
+            activeCount={popups.length}
+            simulateLog={simulateLog}
+            simulateBurst={simulateBurst}
+          />
+        }
       />
 
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
@@ -186,21 +241,33 @@ export default function App() {
         </main>
       </div>
 
-      <div style={{ position: 'fixed', bottom: 20, right: 20, display: 'flex', flexDirection: 'column', gap: 10, zIndex: 9999 }}>
+      {/* High-Performance Real-Time Log Popups Container & Modal */}
+      <LogPopupContainer
+        popups={popups}
+        dismissPopup={dismissPopup}
+        toggleSticky={toggleSticky}
+        pauseTimer={pauseTimer}
+        resumeTimer={resumeTimer}
+        selectedLog={selectedLog}
+        setSelectedLog={setSelectedLog}
+      />
+
+      {/* System Toast Notifications (e.g. WebSocket connection, copies) */}
+      <div style={{ position: 'fixed', bottom: 20, left: 20, display: 'flex', flexDirection: 'column', gap: 10, zIndex: 9998 }}>
         {toasts.map(t => (
           <div
             key={t.id}
             className="neu-raised"
             style={{
-              padding: '12px 20px',
+              padding: '10px 18px',
               borderRadius: 'var(--rad-md)',
-              fontSize: 13,
+              fontSize: 12.5,
               fontWeight: 600,
               display: 'flex',
               alignItems: 'center',
               gap: 10,
               color: t.type === 'error' ? 'var(--c-error)' : t.type === 'warn' ? 'var(--c-warn)' : t.type === 'success' ? 'var(--c-success)' : 'var(--accent)',
-              boxShadow: 'var(--neu-extruded-lg)'
+              boxShadow: 'var(--neu-extruded)'
             }}
           >
             <span>{t.type === 'error' ? '🚨' : t.type === 'success' ? '✅' : 'ℹ️'}</span>

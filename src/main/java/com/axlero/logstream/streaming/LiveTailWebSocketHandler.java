@@ -70,7 +70,6 @@ public class LiveTailWebSocketHandler extends TextWebSocketHandler {
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) {
         logger.debug("Received message from client {}: {}", session.getId(), message.getPayload());
-        // Clients can send filter queries; acknowledge receipt
     }
 
     /**
@@ -98,31 +97,22 @@ public class LiveTailWebSocketHandler extends TextWebSocketHandler {
     }
 
     /**
-     * Lightweight background demo heartbeat that streams live logs
-     * if active clients are connected and idling.
+     * Lightweight background demo heartbeat that streams live telemetry logs
+     * if active clients are connected.
+     * Healthy systems stream INFO telemetry. Real ERROR/WARN events come from
+     * actual ingestion or deliberate test simulations.
      */
-    @Scheduled(fixedDelay = 1500)
+    @Scheduled(fixedDelay = 2000)
     public void emitHeartbeatLogs() {
         if (sessions.isEmpty()) {
             return;
         }
 
         String service = DEMO_SERVICES[random.nextInt(DEMO_SERVICES.length)];
-        String msg = DEMO_MESSAGES[random.nextInt(DEMO_MESSAGES.length)];
-        int roll = random.nextInt(100);
+        String msg = DEMO_MESSAGES[random.nextInt(3)]; // Standard health/connection messages
 
-        String level;
-        if (roll < 65) {
-            level = "INFO";
-        } else if (roll < 85) {
-            level = "DEBUG";
-        } else if (roll < 95) {
-            level = "WARN";
-        } else {
-            level = "ERROR";
-        }
-
-        broadcastLog(Instant.now().toEpochMilli(), level, service, msg);
+        // Emit telemetry heartbeat as INFO so live tail receives stream without spamming alerts
+        broadcastLog(Instant.now().toEpochMilli(), "INFO", service, msg);
     }
 
     private void sendToSession(WebSocketSession session, String payload) {
