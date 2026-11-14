@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function Header({ lps, totalLogs, totalErrors, wsConnected, wsConnecting }) {
+export default function Header({ lps, totalLogs, totalErrors, wsConnected, wsConnecting, popupControls }) {
   return (
     <header style={{
       height: 64,
@@ -36,7 +36,7 @@ export default function Header({ lps, totalLogs, totalErrors, wsConnected, wsCon
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
         <div className="neu-sunken" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 16px', borderRadius: 'var(--rad-pill)' }}>
           <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>RATE</span>
           <strong style={{ fontSize: 14, color: 'var(--accent)', minWidth: 32, textAlign: 'right' }}>{lps}</strong>
@@ -54,34 +54,38 @@ export default function Header({ lps, totalLogs, totalErrors, wsConnected, wsCon
         </div>
       </div>
 
-      <div className="neu-sunken" style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 9,
-        padding: '7px 16px',
-        borderRadius: 'var(--rad-pill)'
-      }}>
-        <div style={{ position: 'relative', width: 10, height: 10 }}>
-          <div style={{
-            width: 10,
-            height: 10,
-            borderRadius: '50%',
-            backgroundColor: wsConnected ? 'var(--c-success)' : wsConnecting ? 'var(--c-warn)' : 'var(--c-error)',
-            boxShadow: wsConnected ? '0 0 8px var(--c-success)' : 'none'
-          }} />
-          {wsConnected && (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        {popupControls}
+
+        <div className="neu-sunken" style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 9,
+          padding: '7px 16px',
+          borderRadius: 'var(--rad-pill)'
+        }}>
+          <div style={{ position: 'relative', width: 10, height: 10 }}>
             <div style={{
-              position: 'absolute',
-              inset: -2,
+              width: 10,
+              height: 10,
               borderRadius: '50%',
-              border: '1.5px solid var(--c-success)',
-              animation: 'pulse-ring 2s infinite'
+              backgroundColor: wsConnected ? 'var(--c-success)' : wsConnecting ? 'var(--c-warn)' : 'var(--c-error)',
+              boxShadow: wsConnected ? '0 0 8px var(--c-success)' : 'none'
             }} />
-          )}
+            {wsConnected && (
+              <div style={{
+                position: 'absolute',
+                inset: -2,
+                borderRadius: '50%',
+                border: '1.5px solid var(--c-success)',
+                animation: 'pulse-ring 2s infinite'
+              }} />
+            )}
+          </div>
+          <span style={{ fontSize: 12, fontWeight: 600, color: wsConnected ? 'var(--c-success)' : wsConnecting ? 'var(--c-warn)' : 'var(--c-error)' }}>
+            {wsConnected ? 'LIVE STREAM' : wsConnecting ? 'CONNECTING...' : 'OFFLINE'}
+          </span>
         </div>
-        <span style={{ fontSize: 12, fontWeight: 600, color: wsConnected ? 'var(--c-success)' : wsConnecting ? 'var(--c-warn)' : 'var(--c-error)' }}>
-          {wsConnected ? 'LIVE STREAM' : wsConnecting ? 'CONNECTING...' : 'OFFLINE'}
-        </span>
       </div>
     </header>
   );

@@ -9,12 +9,14 @@ This project is a custom observability and log analytics platform. It is designe
 - 🚨 **Smart Alerts & Webhook Triggers:** A background Java rule engine that evaluates queries against Lucene thresholds and triggers webhooks/emails.
 - 📊 **Visual Dashboard:** A React frontend with Apache ECharts to show log volumes over time.
 - ⚡ **Live Tail:** Streams incoming logs directly to the UI using WebSockets.
+- 🛡️ **Security & Access Control:** Protects APIs and streams with JWT authentication, Role-Based Access Control (RBAC), rate limiting, and query injection checks.
+- 🔔 **Real-Time Log Popups:** Displays live, color-coded toast notifications for `ERROR`, `WARN`, and `DEBUG` logs with burst flood protection and mute/filter controls.
 
 ## 💻 Tech Stack
 - **Backend:** Java 21, Spring Boot
 - **API & Streaming:** gRPC, WebSockets, REST APIs
 - **Database & Search:** Apache Lucene 10
-- **Frontend:** React.js
+- **Frontend:** React.js (Vite)
 - **Data Visualization:** Apache ECharts
 
 ## 🧑‍🤝‍🧑 Team Members & Roles
@@ -43,6 +45,4 @@ This project is a custom observability and log analytics platform. It is designe
 5. **Run the server:** Start the Spring Boot application from `LogstreamApplication`.
 
 ## 🔮 Upcoming Features & Roadmap
-- 🛡️ **Security Check & Audit:** Implement authentication, rate limiting, and role-based access control (RBAC).
-- ⚡ **Performance Optimization:** Optimize Lucene index commits, memory allocation, and gRPC payload buffering.
-- 🔔 **Real-Time Log Popups:** Show live popups/toast notifications for ERROR, WARN, and DEBUG messages while the engine runs.
+- ⚡ **Performance Optimization:** Tune Lucene index commits, memory allocation, and gRPC payload buffering for maximum throughput
