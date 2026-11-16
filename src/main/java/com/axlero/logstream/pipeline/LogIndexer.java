@@ -11,6 +11,8 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 @Component
 public class LogIndexer {
@@ -37,17 +39,33 @@ public class LogIndexer {
     }
 
     public void index(LogEntry e) throws IOException {
+        Document d = toDocument(e);
+        writer.addDocument(d);
+    }
+
+    public void indexBatch(List<LogEntry> entries) throws IOException {
+        if (writer == null || entries == null || entries.isEmpty()) {
+            return;
+        }
+        List<Document> docs = new ArrayList<>(entries.size());
+        for (LogEntry e : entries) {
+            docs.add(toDocument(e));
+        }
+        writer.addDocuments(docs);
+    }
+
+    private Document toDocument(LogEntry e) {
         Document d = new Document();
-        d.add(new StringField("level", e.level(), Field.Store.YES));
-        d.add(new StringField("service", e.service(), Field.Store.YES));
-        d.add(new TextField("message", e.message(), Field.Store.YES));
+        d.add(new StringField("level", e.level() != null ? e.level() : "INFO", Field.Store.YES));
+        d.add(new StringField("service", e.service() != null ? e.service() : "unknown", Field.Store.YES));
+        d.add(new TextField("message", e.message() != null ? e.message() : "", Field.Store.YES));
         d.add(new LongPoint("timestamp", e.timestamp()));
         d.add(new NumericDocValuesField("timestamp", e.timestamp()));
         d.add(new StoredField("timestamp_stored", e.timestamp()));
         d.add(new LongPoint("response_time", e.responseTime()));
         d.add(new NumericDocValuesField("response_time", e.responseTime()));
         d.add(new StoredField("response_time_stored", e.responseTime()));
-        writer.addDocument(d);
+        return d;
     }
 
     public void commit() throws IOException {

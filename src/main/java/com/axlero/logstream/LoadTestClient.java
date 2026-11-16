@@ -5,19 +5,37 @@ import com.axlero.logstream.grpc.LogMessage;
 import com.axlero.logstream.grpc.LogResponse;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import io.grpc.Metadata;
+import io.grpc.stub.MetadataUtils;
 import io.grpc.stub.StreamObserver;
 
+import java.time.Instant;
+import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 public class LoadTestClient {
+
+    private static final String[] SERVICES = {
+            "order-service", "payment-service", "auth-service", "inventory-service", "gateway-proxy"
+    };
+
+    private static final String[] LEVELS = {"INFO", "DEBUG", "WARN", "ERROR"};
+
     public static void main(String[] args) throws InterruptedException {
-        // 1. Connect to your running Spring Boot gRPC server (default port 9090)
+        // 1. Connect to Spring Boot gRPC server (default port 9090)
         ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost", 9090)
                 .usePlaintext()
                 .build();
 
-        LogIngestionServiceGrpc.LogIngestionServiceStub stub = LogIngestionServiceGrpc.newStub(channel);
+        // 2. Attach x-api-key authentication metadata
+        Metadata metadata = new Metadata();
+        Metadata.Key<String> apiKeyHeader = Metadata.Key.of("x-api-key", Metadata.ASCII_STRING_MARSHALLER);
+        metadata.put(apiKeyHeader, "super-secret-ingestor-key-2026");
+
+        LogIngestionServiceGrpc.LogIngestionServiceStub stub = LogIngestionServiceGrpc.newStub(channel)
+                .withInterceptors(MetadataUtils.newAttachHeadersInterceptor(metadata));
+
         CountDownLatch finishLatch = new CountDownLatch(1);
 
         StreamObserver<LogResponse> responseObserver = new StreamObserver<LogResponse>() {
@@ -28,7 +46,7 @@ public class LoadTestClient {
 
             @Override
             public void onError(Throwable t) {
-                t.printStackTrace();
+                System.err.println("Ingestion error: " + t.getMessage());
                 finishLatch.countDown();
             }
 
@@ -38,26 +56,44 @@ public class LoadTestClient {
             }
         };
 
-        // 2. Open the connection stream
+        // 3. Open streaming connection
         StreamObserver<LogMessage> requestObserver = stub.streamLogs(responseObserver);
 
-        // 3. Blast 50,000 logs as fast as possible to test the 10k/sec requirement
+        // 4. Send 50,000 realistic logs to benchmark throughput
         int totalLogs = 50000;
         System.out.println("Starting high-throughput load test: Sending " + totalLogs + " logs...");
         long startTime = System.currentTimeMillis();
+        Random random = new Random();
 
         for (int i = 0; i < totalLogs; i++) {
-            // Creating an empty log message just to test the server's counting speed
-            LogMessage message = LogMessage.newBuilder().build();
-            requestObserver.onNext(message);
+            String service = SERVICES[random.nextInt(SERVICES.length)];
+            String level = LEVELS[random.nextInt(LEVELS.length)];
+            int responseTime = 10 + random.nextInt(490);
+            String message = "Handled HTTP request " + i + " service=" + service + " status=200 response_time=" + responseTime + "ms";
+
+            LogMessage messageProto = LogMessage.newBuilder()
+                    .setTimestamp(Instant.now().toString())
+                    .setServiceName(service)
+                    .setLevel(level)
+                    .setResponseTime(responseTime)
+                    .setMessage(message)
+                    .build();
+
+            requestObserver.onNext(messageProto);
         }
 
-        // 4. Close the stream and calculate the time
+        // 5. Complete stream and calculate throughput
         requestObserver.onCompleted();
-        finishLatch.await(10, TimeUnit.SECONDS);
+        boolean completed = finishLatch.await(30, TimeUnit.SECONDS);
 
-        long timeTaken = System.currentTimeMillis() - startTime;
-        System.out.println("✅ Sent " + totalLogs + " logs in " + timeTaken + " milliseconds!");
+        long timeTaken = Math.max(1, System.currentTimeMillis() - startTime);
+        double throughput = (totalLogs * 1000.0) / timeTaken;
+
+        System.out.println("=================================================");
+        System.out.printf("✅ Sent %,d logs in %,d ms%n", totalLogs, timeTaken);
+        System.out.printf("🚀 Ingestion Throughput: %,.2f logs/second%n", throughput);
+        System.out.println("Completed successfully: " + completed);
+        System.out.println("=================================================");
 
         channel.shutdown();
     }
