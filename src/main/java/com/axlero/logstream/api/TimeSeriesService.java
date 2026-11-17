@@ -107,11 +107,8 @@ public class TimeSeriesService {
             current = current.add(bucketSize).min(endTime);
         }
 
-        try (DirectoryReader reader =
-                     DirectoryReader.open(indexer.writer())) {
-
-            IndexSearcher searcher = new IndexSearcher(reader);
-
+        IndexSearcher searcher = indexer.acquireSearcher();
+        try {
             FacetsCollector collector = new FacetsCollector();
             searcher.search(filter, collector);
 
@@ -174,6 +171,8 @@ public class TimeSeriesService {
                     }
                 }
             }
+        } finally {
+            indexer.releaseSearcher(searcher);
         }
 
         List<Map<String, Object>> output = new ArrayList<>();

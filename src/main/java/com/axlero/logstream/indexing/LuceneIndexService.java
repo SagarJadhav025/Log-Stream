@@ -21,12 +21,15 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.index.TieredMergePolicy;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.SearcherFactory;
+import org.apache.lucene.search.SearcherManager;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
@@ -37,14 +40,22 @@ public final class LuceneIndexService implements AutoCloseable {
     private final ByteBuffersDirectory directory;
     private final StandardAnalyzer analyzer;
     private final IndexWriter writer;
+    private final SearcherManager searcherManager;
 
     public LuceneIndexService() throws IOException {
         directory = new ByteBuffersDirectory();
         analyzer = new StandardAnalyzer();
-        writer = new IndexWriter(
-                directory,
-                new IndexWriterConfig(analyzer)
-        );
+
+        TieredMergePolicy mergePolicy = new TieredMergePolicy();
+        mergePolicy.setMaxMergedSegmentMB(512.0);
+        mergePolicy.setSegmentsPerTier(10.0);
+
+        IndexWriterConfig cfg = new IndexWriterConfig(analyzer);
+        cfg.setRAMBufferSizeMB(256.0);
+        cfg.setMergePolicy(mergePolicy);
+
+        writer = new IndexWriter(directory, cfg);
+        searcherManager = new SearcherManager(writer, new SearcherFactory());
     }
 
     public void index(LogEvent event) throws IOException {
@@ -245,10 +256,10 @@ public final class LuceneIndexService implements AutoCloseable {
                 ? builder.build()
                 : new MatchAllDocsQuery();
 
-        writer.commit();
+        searcherManager.maybeRefresh();
+        IndexSearcher searcher = searcherManager.acquire();
 
-        try (DirectoryReader reader = DirectoryReader.open(directory)) {
-            IndexSearcher searcher = new IndexSearcher(reader);
+        try {
             var topDocs = newestFirst
                     ? searcher.search(query, criteria.limit(), new Sort(
                             new SortField("timestamp_epoch_seconds_sort", SortField.Type.LONG, true),
@@ -273,18 +284,24 @@ public final class LuceneIndexService implements AutoCloseable {
             }
 
             return List.copyOf(results);
+        } finally {
+            searcherManager.release(searcher);
         }
     }
 
     @Override
     public void close() throws IOException {
         try {
-            writer.close();
+            searcherManager.close();
         } finally {
             try {
-                analyzer.close();
+                writer.close();
             } finally {
-                directory.close();
+                try {
+                    analyzer.close();
+                } finally {
+                    directory.close();
+                }
             }
         }
     }
