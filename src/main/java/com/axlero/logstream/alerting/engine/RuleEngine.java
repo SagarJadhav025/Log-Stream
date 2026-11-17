@@ -84,8 +84,8 @@ public class RuleEngine {
             return Optional.empty();
         }
 
-        try (DirectoryReader reader = DirectoryReader.open(indexer.writer())) {
-            IndexSearcher searcher = new IndexSearcher(reader);
+        IndexSearcher searcher = indexer.acquireSearcher();
+        try {
             TopDocs topDocs = searcher.search(query, 5);
 
             long matchedCount = topDocs.totalHits.value();
@@ -119,6 +119,8 @@ public class RuleEngine {
                         sampleLogs
                 ));
             }
+        } finally {
+            indexer.releaseSearcher(searcher);
         }
 
         return Optional.empty();
