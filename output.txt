@@ -1,0 +1,91 @@
+Picked up JAVA_TOOL_OPTIONS: -Dstdout.encoding=UTF-8 -Dstderr.encoding=UTF-8
+[0.024s][warning][cds] This file is not the one used while building the shared archive file: 'C:\Users\Asus\AppData\Roaming\Code\User\globalStorage\pleiades.java-extension-pack-jdk\java\latest\lib\modules', size has changed
+[INFO] Scanning for projects...
+[INFO] Loaded 24469 auto-discovered prefixes for remote repository central (prefixes-central.txt)
+[INFO] 
+[INFO] --------------< com.logstream:log-stream-search-livetail >--------------
+[INFO] Building log-stream-search-livetail 0.1.0
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] >>> spring-boot:3.3.5:run (default-cli) > test-compile @ log-stream-search-livetail >>>
+[INFO] Loaded 64 auto-discovered prefixes for remote repository apache.snapshots (prefixes-apache.snapshots.txt)
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ log-stream-search-livetail ---
+[INFO] skip non existing resourceDirectory C:\Users\Asus\OneDrive\Documents\GitHub\Axlero_log stream\Axlero log stream\Log-Stream\src\main\resources
+[INFO] skip non existing resourceDirectory C:\Users\Asus\OneDrive\Documents\GitHub\Axlero_log stream\Axlero log stream\Log-Stream\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ log-stream-search-livetail ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 14 source files with javac [debug parameters release 17] to target\classes
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ log-stream-search-livetail ---
+[INFO] skip non existing resourceDirectory C:\Users\Asus\OneDrive\Documents\GitHub\Axlero_log stream\Axlero log stream\Log-Stream\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ log-stream-search-livetail ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 1 source file with javac [debug parameters release 17] to target\test-classes
+[INFO] 
+[INFO] <<< spring-boot:3.3.5:run (default-cli) < test-compile @ log-stream-search-livetail <<<
+[INFO] 
+[INFO] 
+[INFO] --- spring-boot:3.3.5:run (default-cli) @ log-stream-search-livetail ---
+[INFO] Loaded 50 auto-discovered prefixes for remote repository ow2-snapshot (prefixes-ow2-snapshot.txt)
+[INFO] Attaching agents: []
+Picked up JAVA_TOOL_OPTIONS: -Dstdout.encoding=UTF-8 -Dstderr.encoding=UTF-8
+[0.029s][warning][cds] This file is not the one used while building the shared archive file: 'C:\Users\Asus\AppData\Roaming\Code\User\globalStorage\pleiades.java-extension-pack-jdk\java\latest\lib\modules', size has changed
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.3.5)
+
+2026-11-13T16:18:21.868+05:30  INFO 10524 --- [           main] com.logstream.LogstreamApplication       : Starting LogstreamApplication using Java 27 with PID 10524 (C:\Users\Asus\OneDrive\Documents\GitHub\Axlero_log stream\Axlero log stream\Log-Stream\target\classes started by Asus in C:\Users\Asus\OneDrive\Documents\GitHub\Axlero_log stream\Axlero log stream\Log-Stream)
+2026-11-13T16:18:21.870+05:30  INFO 10524 --- [           main] com.logstream.LogstreamApplication       : No active profile set, falling back to 1 default profile: "default"
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by org.apache.tomcat.jni.Library in an unnamed module (file:/C:/Users/Asus/.m2/repository/org/apache/tomcat/embed/tomcat-embed-core/10.1.31/tomcat-embed-core-10.1.31.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+2026-11-13T16:18:22.954+05:30  INFO 10524 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2026-11-13T16:18:22.969+05:30  INFO 10524 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-11-13T16:18:22.970+05:30  INFO 10524 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.31]
+2026-11-13T16:18:23.076+05:30  INFO 10524 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-11-13T16:18:23.076+05:30  INFO 10524 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1143 ms
+2026-11-13T16:18:23.130+05:30  WARN 10524 --- [           main] ConfigServletWebServerApplicationContext : Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'histogramController' defined in file [C:\Users\Asus\OneDrive\Documents\GitHub\Axlero_log stream\Axlero log stream\Log-Stream\target\classes\com\logstream\search\HistogramController.class]: Unsatisfied dependency expressed through constructor parameter 0: No qualifying bean of type 'com.logstream.search.Logsearchservice' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {}
+2026-11-13T16:18:23.134+05:30  INFO 10524 --- [           main] o.apache.catalina.core.StandardService   : Stopping service [Tomcat]
+2026-11-13T16:18:23.146+05:30  INFO 10524 --- [           main] .s.b.a.l.ConditionEvaluationReportLogger : 
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+2026-11-13T16:18:23.170+05:30 ERROR 10524 --- [           main] o.s.b.d.LoggingFailureAnalysisReporter   : 
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Parameter 0 of constructor in com.logstream.search.HistogramController required a bean of type 'com.logstream.search.Logsearchservice' that could not be found.
+
+
+Action:
+
+Consider defining a bean of type 'com.logstream.search.Logsearchservice' in your configuration.
+
+[INFO] ------------------------------------------------------------------------
+[ERROR] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  22.834 s
+[INFO] Finished at: 2026-11-13T16:18:23+05:30
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.springframework.boot:spring-boot-maven-plugin:3.3.5:run (default-cli) on project log-stream-search-livetail: Process terminated with exit code: 1 -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException

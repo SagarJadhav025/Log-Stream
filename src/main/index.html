@@ -9,7 +9,7 @@
       --bg: #0b1220; --panel: #111a2c; --border: #24324d; --text: #e6edf7;
       --muted: #8da2c0; --accent: #5ac8fa; --green: #34d399; --red: #f87171; --yellow: #fbbf24;
     }
-    
+
     * { box-sizing: border-box; }
     body { margin: 0; padding: 20px 28px; background: var(--bg); color: var(--text);
            font-family: "Segoe UI", system-ui, sans-serif; }
@@ -21,7 +21,7 @@
     #status.connected { background: rgba(52,211,153,.18); color: var(--green); }
     #status.disconnected { background: rgba(248,113,113,.18); color: var(--red); }
     .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
-   padding: 14px 16px; margin-bottom: 16px; }
+             padding: 14px 16px; margin-bottom: 16px; }
     .panel h2 { margin: 0 0 4px; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; color: var(--accent); }
     .hint { margin: 0 0 10px; font-size: 12px; color: var(--muted); }
     .row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
@@ -100,10 +100,18 @@
       return '<span class="ts">' + t + '</span> [' + e.level.padEnd(5) + '] ' + esc(e.service) + ' - ' + esc(e.message);
     }
 
-    function connect() {
-     
-      
-      ws.onmessage = (ev) => {
+    
+function connect() {
+  setStatus('connecting...');
+  ws = new WebSocket(WS_URL);      
+  ws.onopen = () => {
+    retry = 0;
+    setStatus('connected', 'connected');
+    if ($('filter').value) sendFilter();
+  };
+
+  ws.onmessage = (ev) => {
+   
         const m = JSON.parse(ev.data);
         if (m.type === 'log') {
           received++;
@@ -115,7 +123,7 @@
       };
       ws.onclose = () => {
         setStatus('disconnected', 'disconnected');
-        const wait = Math.min(1000 * 2 ** retry++, 10000);    // 1s, 2s, 4s ... max 10s
+        const wait = Math.min(1000 * 2 ** retry++, 10000);    
         setTimeout(connect, wait);
       };
       ws.onerror = () => ws.close();
@@ -132,7 +140,7 @@
       paused = !paused;
       if (ws && ws.readyState === WebSocket.OPEN) ws.send(paused ? 'cmd:pause' : 'cmd:resume');
       $('pause').textContent = paused ? 'Resume' : 'Pause';
-      if (!paused) sendFilter(); // cmd:resume keeps the old filter, this just makes it explicit
+      if (!paused) sendFilter(); 
     };
 
     async function runSearch() {
