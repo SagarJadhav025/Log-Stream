@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import * as echarts from 'echarts';
 
 const formatTime = (ts) => {
@@ -10,31 +10,41 @@ const formatTime = (ts) => {
 export default function HistogramView({ onNotify }) {
   const chartRef = useRef(null);
   const echartsInstance = useRef(null);
+  // Day 5: Throttle ECharts re-renders to at most 1 per second
+  const lastRenderTime = useRef(0);
+  const pendingData = useRef(null);
+  const throttleTimerRef = useRef(null);
+
   const [minutes, setMinutes] = useState('60');
   const [bucketSeconds, setBucketSeconds] = useState('300');
   const [level, setLevel] = useState('');
   const [serviceName, setServiceName] = useState('');
 
-  const fetchHistogram = useCallback(async () => {
-    try {
-      const params = new URLSearchParams({ minutes, bucketSeconds });
-      if (level) params.set('level', level);
-      if (serviceName.trim()) params.set('serviceName', serviceName.trim());
-
-      const res = await fetch(`/api/logs/histogram?${params.toString()}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      renderChart(data);
-    } catch (err) {
-      onNotify(`Histogram error: ${err.message}`, 'error');
-    }
-  }, [minutes, bucketSeconds, level, serviceName]);
-
-  const renderChart = (data) => {
+  const renderChart = useCallback((data) => {
     if (!chartRef.current) return;
     if (!echartsInstance.current) {
       echartsInstance.current = echarts.init(chartRef.current, null, { renderer: 'canvas' });
     }
+
+    const now = Date.now();
+    const timeSinceLastRender = now - lastRenderTime.current;
+
+    // Throttle: defer render if less than 1000ms since last one
+    if (timeSinceLastRender < 1000) {
+      pendingData.current = data;
+      if (!throttleTimerRef.current) {
+        throttleTimerRef.current = setTimeout(() => {
+          throttleTimerRef.current = null;
+          if (pendingData.current) {
+            renderChart(pendingData.current);
+            pendingData.current = null;
+          }
+        }, 1000 - timeSinceLastRender);
+      }
+      return;
+    }
+
+    lastRenderTime.current = now;
 
     const xData = (data || []).map(d => formatTime(d.time || d.timestamp));
     const yData = (data || []).map(d => d.count || 0);
@@ -85,14 +95,32 @@ export default function HistogramView({ onNotify }) {
       ]
     };
 
-    echartsInstance.current.setOption(option);
-  };
+    echartsInstance.current.setOption(option, { notMerge: false, lazyUpdate: true });
+  }, []);
+
+  const fetchHistogram = useCallback(async () => {
+    try {
+      const params = new URLSearchParams({ minutes, bucketSeconds });
+      if (level) params.set('level', level);
+      if (serviceName.trim()) params.set('serviceName', serviceName.trim());
+
+      const res = await fetch(`/api/logs/histogram?${params.toString()}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      renderChart(data);
+    } catch (err) {
+      onNotify(`Histogram error: ${err.message}`, 'error');
+    }
+  }, [minutes, bucketSeconds, level, serviceName, renderChart]);
 
   useEffect(() => {
     fetchHistogram();
     const handleResize = () => echartsInstance.current && echartsInstance.current.resize();
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (throttleTimerRef.current) clearTimeout(throttleTimerRef.current);
+    };
   }, [fetchHistogram]);
 
   return (

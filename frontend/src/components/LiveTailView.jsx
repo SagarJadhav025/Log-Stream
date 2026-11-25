@@ -1,10 +1,90 @@
-import React, { useRef, useEffect, useMemo } from 'react';
+import React, { useRef, useEffect, useMemo, memo, useCallback } from 'react';
 
 const formatTime = (ts) => {
   if (!ts) return '--:--:--';
   const d = new Date(ts);
   return isNaN(d) ? ts : d.toLocaleTimeString('en-US', { hour12: false });
 };
+
+// Day 5: Memoized single log row — only re-renders if the log object reference changes
+const LogRow = memo(function LogRow({ item }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'baseline',
+        gap: 12,
+        padding: '2px 6px',
+        borderRadius: 6,
+        contain: 'content', // CSS containment for paint performance
+      }}
+    >
+      <span style={{ color: 'var(--text-faint)', fontSize: 11, flexShrink: 0 }}>
+        {formatTime(item.timestamp)}
+      </span>
+      <span className={`neu-badge ${item.level}`} style={{ fontSize: 9.5, padding: '1px 7px', minWidth: 48, justifyContent: 'center' }}>
+        {item.level}
+      </span>
+      <span style={{ color: 'var(--accent)', fontWeight: 600, flexShrink: 0, minWidth: 90 }}>
+        [{item.service || 'system'}]
+      </span>
+      <span style={{
+        color: item.level === 'ERROR' ? 'var(--c-error)' : item.level === 'WARN' ? 'var(--c-warn)' : 'var(--text-main)',
+        wordBreak: 'break-all'
+      }}>
+        {item.message}
+      </span>
+    </div>
+  );
+});
+
+// Day 5: Virtual log list — only renders rows in the visible viewport
+const ITEM_HEIGHT = 28;
+const OVERSCAN = 10;
+
+function VirtualLogList({ logs }) {
+  const containerRef = useRef(null);
+  const [scrollTop, setScrollTop] = React.useState(0);
+  const [height, setHeight] = React.useState(400);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(entries => {
+      setHeight(entries[0].contentRect.height);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const totalHeight = logs.length * ITEM_HEIGHT;
+  const startIndex = Math.max(0, Math.floor(scrollTop / ITEM_HEIGHT) - OVERSCAN);
+  const endIndex = Math.min(logs.length, Math.ceil((scrollTop + height) / ITEM_HEIGHT) + OVERSCAN);
+  const visibleLogs = logs.slice(startIndex, endIndex);
+
+  const handleScroll = useCallback((e) => {
+    setScrollTop(e.currentTarget.scrollTop);
+  }, []);
+
+  return (
+    <div
+      ref={containerRef}
+      onScroll={handleScroll}
+      className="neu-sunken-deep mono"
+      style={{ flex: 1, overflowY: 'auto', position: 'relative', fontSize: 12.5, lineHeight: 1.65 }}
+    >
+      {/* Full height spacer so scrollbar represents all logs */}
+      <div style={{ height: totalHeight, position: 'relative' }}>
+        {/* Rendered slice — offset to visible position */}
+        <div style={{ position: 'absolute', top: startIndex * ITEM_HEIGHT, width: '100%', padding: '0 18px' }}>
+          {visibleLogs.map((item, i) => (
+            <LogRow key={startIndex + i} item={item} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function LiveTailView({ logs, paused, setPaused, clearLogs, filterText, setFilterText, levelFilter, setLevelFilter }) {
   const scrollRef = useRef(null);
@@ -22,6 +102,7 @@ export default function LiveTailView({ logs, paused, setPaused, clearLogs, filte
     }
   }, [logs, paused]);
 
+  // Day 5: useMemo filters to avoid recomputing on every parent render
   const filteredLogs = useMemo(() => {
     return logs.filter(log => {
       if (levelFilter && log.level !== levelFilter) return false;
@@ -46,7 +127,7 @@ export default function LiveTailView({ logs, paused, setPaused, clearLogs, filte
           type="text"
           className="neu-input"
           style={{ flex: 1, minWidth: 260 }}
-          placeholder='Filter logs by text or service (e.g. "auth" or "timeout")...'
+          placeholder='Filter logs by text or service...'
           value={filterText}
           onChange={(e) => setFilterText(e.target.value)}
         />
@@ -80,57 +161,14 @@ export default function LiveTailView({ logs, paused, setPaused, clearLogs, filte
         </div>
       </div>
 
-      <div
-        ref={scrollRef}
-        onScroll={handleScroll}
-        className="neu-sunken-deep mono"
-        style={{
-          flex: 1,
-          overflowY: 'auto',
-          padding: '14px 18px',
-          fontSize: 12.5,
-          lineHeight: 1.65,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 4
-        }}
-      >
-        {filteredLogs.length === 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, color: 'var(--text-faint)', gap: 8 }}>
-            <span style={{ fontSize: 32 }}>📡</span>
-            <span>No logs matching current filter. Waiting for live events...</span>
-          </div>
-        ) : (
-          filteredLogs.map((item, idx) => (
-            <div
-              key={idx}
-              style={{
-                display: 'flex',
-                alignItems: 'baseline',
-                gap: 12,
-                padding: '2px 6px',
-                borderRadius: 6
-              }}
-            >
-              <span style={{ color: 'var(--text-faint)', fontSize: 11, flexShrink: 0 }}>
-                {formatTime(item.timestamp)}
-              </span>
-              <span className={`neu-badge ${item.level}`} style={{ fontSize: 9.5, padding: '1px 7px', minWidth: 48, justifyContent: 'center' }}>
-                {item.level}
-              </span>
-              <span style={{ color: 'var(--accent)', fontWeight: 600, flexShrink: 0, minWidth: 90 }}>
-                [{item.service || 'system'}]
-              </span>
-              <span style={{
-                color: item.level === 'ERROR' ? 'var(--c-error)' : item.level === 'WARN' ? 'var(--c-warn)' : 'var(--text-main)',
-                wordBreak: 'break-all'
-              }}>
-                {item.message}
-              </span>
-            </div>
-          ))
-        )}
-      </div>
+      {filteredLogs.length === 0 ? (
+        <div className="neu-sunken-deep" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-faint)', gap: 8 }}>
+          <span style={{ fontSize: 32 }}>📡</span>
+          <span>No logs matching current filter. Waiting for live events...</span>
+        </div>
+      ) : (
+        <VirtualLogList logs={filteredLogs} />
+      )}
     </div>
   );
 }
