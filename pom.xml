@@ -22,7 +22,6 @@
     <java.version>21</java.version>
     <lucene.version>10.5.2</lucene.version>
     <jmh.version>1.37</jmh.version>
-    <os.detected.classifier>windows-x86_64</os.detected.classifier>
   </properties>
 
   <dependencies>

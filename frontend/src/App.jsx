@@ -116,7 +116,13 @@ export default function App() {
           if (!isMounted) return;
           try {
             const parsed = JSON.parse(event.data);
-            const items = Array.isArray(parsed) ? parsed : [parsed];
+            const rawItems = Array.isArray(parsed) ? parsed : [parsed];
+            const items = rawItems.map(it => ({
+              timestamp: it.t ?? it.timestamp ?? Date.now(),
+              level:     it.l ?? it.level ?? 'INFO',
+              service:   it.s ?? it.service ?? 'system',
+              message:   it.m ?? it.message ?? '',
+            }));
 
             lpsCounter.current += items.length;
             setTotalLogs(prev => prev + items.length);
