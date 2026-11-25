@@ -1,0 +1,57 @@
+services:
+
+  # ── Backend: Spring Boot (gRPC + REST + WebSocket) ────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: logstream-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"   # REST / WebSocket
+      - "9090:9090"   # gRPC ingestion
+    volumes:
+      - lucene-data:/app/lucene-index
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - logstream.security.jwt.secret=${JWT_SECRET:-dGhpc0lzQVZlcnlTZWN1cmVTZWNyZXRLZXlGb3JMb2dTdHJlYW0yMDI2IQ==}
+      - logstream.grpc.api-keys=${GRPC_API_KEYS:-super-secret-ingestor-key-2026,cluster-daemon-key-42}
+    deploy:
+      resources:
+        limits:
+          cpus: "4"
+          memory: 6G
+        reservations:
+          memory: 512M
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # ── Frontend: React + Vite (served by Nginx) ─────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: logstream-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 256M
+
+volumes:
+  lucene-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./lucene-index

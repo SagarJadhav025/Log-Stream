@@ -1,0 +1,25 @@
+# ── Maven build artifacts ──────────────────────────────────────────────────
+target/
+*.jar
+*.war
+
+# ── Lucene on-disk index (mounted as a Docker volume) ─────────────────────
+lucene-index/
+
+# ── Frontend (built separately in its own Docker stage) ───────────────────
+frontend/
+
+# ── IDE & OS noise ────────────────────────────────────────────────────────
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+
+# ── Git & CI ──────────────────────────────────────────────────────────────
+.git/
+.github/
+*.md
+
+# ── Secrets / local overrides ─────────────────────────────────────────────
+.env
+.env.*
