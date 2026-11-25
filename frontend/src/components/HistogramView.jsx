@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import * as echarts from 'echarts';
+import { authFetch } from '../utils/api';
 
 const formatTime = (ts) => {
   if (!ts) return '--:--:--';
@@ -104,7 +105,7 @@ export default function HistogramView({ onNotify }) {
       if (level) params.set('level', level);
       if (serviceName.trim()) params.set('serviceName', serviceName.trim());
 
-      const res = await fetch(`/api/logs/histogram?${params.toString()}`);
+      const res = await authFetch(`/api/logs/histogram?${params.toString()}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       renderChart(data);

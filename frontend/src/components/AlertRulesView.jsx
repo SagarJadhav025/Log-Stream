@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { authFetch } from '../utils/api';
 
 export default function AlertRulesView({ onNotify }) {
   const [rules, setRules] = useState([]);
@@ -17,7 +18,7 @@ export default function AlertRulesView({ onNotify }) {
 
   const fetchRules = async () => {
     try {
-      const res = await fetch('/api/alerts/rules');
+      const res = await authFetch('/api/alerts/rules');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setRules(Array.isArray(data) ? data : Object.values(data));
@@ -50,7 +51,7 @@ export default function AlertRulesView({ onNotify }) {
     };
 
     try {
-      const res = await fetch('/api/alerts/rules', {
+      const res = await authFetch('/api/alerts/rules', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newRule)
@@ -68,7 +69,7 @@ export default function AlertRulesView({ onNotify }) {
   const handleToggleRule = async (rule) => {
     try {
       const updated = { ...rule, enabled: !rule.enabled };
-      const res = await fetch('/api/alerts/rules', {
+      const res = await authFetch('/api/alerts/rules', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updated)
@@ -83,7 +84,7 @@ export default function AlertRulesView({ onNotify }) {
   const handleDeleteRule = async (id) => {
     if (!confirm(`Delete alert rule ${id}?`)) return;
     try {
-      const res = await fetch(`/api/alerts/rules/${id}`, { method: 'DELETE' });
+      const res = await authFetch(`/api/alerts/rules/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       onNotify('Rule deleted', 'info');
       fetchRules();
@@ -95,7 +96,7 @@ export default function AlertRulesView({ onNotify }) {
   const handleEvaluateNow = async () => {
     setEvaluating(true);
     try {
-      const res = await fetch('/api/alerts/evaluate', { method: 'POST' });
+      const res = await authFetch('/api/alerts/evaluate', { method: 'POST' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       const breachCount = (data.breaches || []).length;
@@ -113,7 +114,7 @@ export default function AlertRulesView({ onNotify }) {
 
   const handleTestWebhook = async () => {
     try {
-      const res = await fetch('/api/alerts/test-webhook', {
+      const res = await authFetch('/api/alerts/test-webhook', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ webhookUrl: testWebhookUrl })

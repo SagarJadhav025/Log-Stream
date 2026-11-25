@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { authFetch } from '../utils/api';
 
 const formatDateTime = (ts) => {
   if (!ts) return '--';
@@ -14,7 +15,7 @@ export default function NotificationHistoryView({ onNotify }) {
 
   const fetchHistory = async () => {
     try {
-      const res = await fetch('/api/alerts/history');
+      const res = await authFetch('/api/alerts/history');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setHistory(Array.isArray(data) ? data : []);

@@ -17,8 +17,8 @@ public class GrpcRateLimitServerInterceptor implements ServerInterceptor {
     private final Map<String, Bucket> clientBuckets = new ConcurrentHashMap<>();
 
     private Bucket createIngestBucket() {
-        // 10,000 logs/second refill, capacity 20,000 burst
-        Bandwidth limit = Bandwidth.classic(20_000, Refill.intervally(10_000, Duration.ofSeconds(1)));
+        // 50,000 logs/second refill, capacity 100,000 burst (supports 10k-50k+ logs/sec load tests)
+        Bandwidth limit = Bandwidth.classic(100_000, Refill.intervally(50_000, Duration.ofSeconds(1)));
         return Bucket.builder().addLimit(limit).build();
     }
 

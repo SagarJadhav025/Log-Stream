@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { authFetch } from '../utils/api';
 
 const formatDateTime = (ts) => {
   if (!ts) return '--';
@@ -29,7 +30,7 @@ export default function SearchView({ onNotify }) {
       if (sinceMinutes) params.set('sinceMinutes', sinceMinutes);
       params.set('limit', limit);
 
-      const res = await fetch(`/api/search?${params.toString()}`);
+      const res = await authFetch(`/api/search?${params.toString()}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setResults(data.results || []);
